@@ -80,6 +80,15 @@
         <span class="field-label">なぜ欲しいと思った？</span>
         <textarea id="f-reason" name="reason" rows="2" maxlength="200" placeholder="今の機種の充電が持たないから"></textarea>
       </label>
+      <div class="field">
+        <span class="field-label">写真<span class="opt">任意</span></span>
+        <div class="photo-row" id="photoRow">
+          <div class="photo-slot" id="photoSlot" data-act="pick-new" role="button" tabindex="0">
+            <span>画像を選ぶ</span>
+          </div>
+          <p class="hint">商品ページのスクリーンショットでも、現物の写真でも。貼り付け（Ctrl / ⌘ + V）もできます。</p>
+        </div>
+      </div>
       <label class="field">
         <span class="field-label">リンク<span class="opt">任意</span></span>
         <input id="f-url" name="url" type="url" placeholder="https://" autocomplete="off">
@@ -100,6 +109,19 @@
         <button class="btn btn-primary" type="submit">冷却をはじめる</button>
       </div>
     </form>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox-inner">
+    <img id="lightboxImg" alt="保留している商品の写真">
+    <div class="lightbox-btns">
+      <button class="btn btn-sm" type="button" data-act="replace-photo">差し替える</button>
+      <button class="btn btn-sm btn-danger" type="button" data-act="remove-photo">写真を消す</button>
+      <button class="btn btn-sm" type="button" id="closeLightbox">閉じる</button>
+    </div>
   </div>
 </div>
 

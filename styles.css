@@ -238,7 +238,9 @@ a{color:var(--cool-ink)}
   box-shadow:var(--shadow);
 }
 .card.is-ready{border-color:var(--cool);border-width:1.5px}
-.card-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.card-top{display:flex;gap:12px;align-items:flex-start}
+.card-head{flex:1 1 auto;min-width:0}
+.title-row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
 .card-name{font-size:16px;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
 .card-price{
   font-family:var(--mono);
@@ -247,6 +249,7 @@ a{color:var(--cool-ink)}
   font-size:16px;
   white-space:nowrap;
 }
+.card-head .meta{margin-top:6px}
 .meta{
   display:flex;
   flex-wrap:wrap;
@@ -417,6 +420,82 @@ a{color:var(--cool-ink)}
   margin-top:6px;
 }
 .empty strong{display:block;color:var(--ink-2);font-size:15px;margin-bottom:4px}
+
+/* ---- 写真 ---------------------------------------------------------- */
+.thumb{
+  width:72px;
+  height:72px;
+  flex:0 0 auto;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  object-fit:cover;
+  display:block;
+  cursor:zoom-in;
+}
+.thumb.is-past{filter:grayscale(.5);opacity:.9}
+.card-name{flex:1 1 auto;min-width:0}
+
+.photo-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.photo-slot{
+  width:84px;
+  height:84px;
+  flex:0 0 auto;
+  border:1px dashed var(--line-strong);
+  border-radius:10px;
+  background:var(--surface-2);
+  color:var(--ink-3);
+  font-size:11px;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  cursor:pointer;
+  padding:6px;
+  position:relative;
+  overflow:hidden;
+}
+.photo-slot:hover{border-color:var(--cool);color:var(--cool-ink)}
+.photo-slot img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-slot.has-image{border-style:solid;border-color:var(--line);padding:0}
+.photo-row .hint{flex:1 1 150px;min-width:0}
+.photo-clear{
+  position:absolute;
+  top:3px;
+  right:3px;
+  width:22px;
+  height:22px;
+  border-radius:99px;
+  border:none;
+  background:rgba(12,18,24,.72);
+  color:#fff;
+  font-size:11px;
+  line-height:1;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  padding:0;
+}
+
+.lightbox{
+  position:fixed;
+  inset:0;
+  background:rgba(8,12,17,.86);
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));
+}
+.lightbox-inner{display:flex;flex-direction:column;gap:12px;align-items:center;max-width:520px;width:100%}
+.lightbox img{
+  max-width:100%;
+  max-height:66vh;
+  border-radius:var(--radius);
+  background:var(--surface-2);
+  display:block;
+}
+.lightbox-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.lightbox-btns .btn{background:var(--surface);border-color:var(--line-strong)}
 
 /* ---- fab + sheet --------------------------------------------------- */
 .fab{

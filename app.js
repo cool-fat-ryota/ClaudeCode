@@ -27,7 +27,46 @@
     return sampleState();
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 無視 */ }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      toast('保存できませんでした。写真の枚数が多いと容量の上限に達することがあります。古いものを削除してください。');
+      return false;
+    }
+  }
+
+  /* ---- 画像（端末の中だけで縮小して持つ） ---- */
+  var MAX_EDGE = 720;
+  function readImage(file, done) {
+    if (!file || file.type.indexOf('image/') !== 0) {
+      toast('画像ファイルを選んでください。');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () { toast('画像を読み込めませんでした。'); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { toast('この画像は表示できない形式でした。'); };
+      img.onload = function () {
+        var scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));
+        var w = Math.max(1, Math.round(img.width * scale));
+        var h = Math.max(1, Math.round(img.height * scale));
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        try {
+          done(canvas.toDataURL('image/jpeg', 0.72));
+        } catch (e) {
+          toast('この画像は取り込めませんでした。');
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function uid() {
@@ -128,6 +167,9 @@
   var state = load();
   var tab = 'cooling';
   var pendingDelete = null;
+  var draftImage = null;   // 追加シートで選んだ写真
+  var photoTarget = null;  // 'new' か item.id
+  var lightboxId = null;
   var shownTotal = savedTotal();
 
   var $ = function (id) { return document.getElementById(id); };
@@ -207,6 +249,20 @@
       '<circle cx="' + (w - pad) + '" cy="' + ly + '" r="2.5" fill="currentColor"/></svg>';
   }
 
+  function thumb(item, past) {
+    if (!item.image || item.image.indexOf('data:image/') !== 0) return '';
+    return '<img class="thumb' + (past ? ' is-past' : '') + '" src="' + item.image +
+      '" alt="' + esc(item.name) + 'の写真" data-act="zoom" data-id="' + item.id + '">';
+  }
+
+  function cardHead(item, past, metaHtml) {
+    return '<div class="card-top">' + thumb(item, past) +
+      '<div class="card-head"><div class="title-row">' +
+      '<h3 class="card-name">' + esc(item.name) + '</h3>' +
+      '<span class="card-price">' + yen(item.price) + '</span></div>' +
+      metaHtml + '</div></div>';
+  }
+
   function metaLine(item) {
     var bits = ['<span class="chip">' + esc(item.category) + '</span>'];
     bits.push('<span>' + dateLabel(item.createdAt) + 'に保留</span>');
@@ -257,9 +313,7 @@
     }
 
     return '<article class="card' + (ready ? ' is-ready' : '') + '">' +
-      '<div class="card-top"><h3 class="card-name">' + esc(item.name) + '</h3>' +
-      '<span class="card-price">' + yen(item.price) + '</span></div>' +
-      metaLine(item) + reasonBlock(item) +
+      cardHead(item, false, metaLine(item)) + reasonBlock(item) +
       '<div class="cool"><div class="cool-head">' +
       '<span class="cool-left">' + (ready ? '冷却おわり' : '冷却中') + '</span>' +
       '<span class="cool-right">' + human(left) + '</span></div>' +
@@ -270,17 +324,17 @@
       '<div class="actions">' +
       '<button class="btn btn-pass" type="button" data-act="pass" data-id="' + item.id + '">見送る（' + yen(item.price) + ' 貯める）</button>' +
       '<button class="btn" type="button" data-act="buy" data-id="' + item.id + '">' + (ready ? '買う' : '待てずに買う') + '</button>' +
-      '<span class="spacer"></span>' + deleteBtn(item) +
+      '<span class="spacer"></span>' +
+      (item.image ? '' : '<button class="btn btn-sm btn-quiet" type="button" data-act="add-photo" data-id="' + item.id + '">写真を追加</button>') +
+      deleteBtn(item) +
       '</div></article>';
   }
 
   function passedCard(item) {
     var waited = Math.max(0, Math.round(((item.decidedAt || Date.now()) - item.createdAt) / DAY));
     return '<article class="card">' +
-      '<div class="card-top"><h3 class="card-name">' + esc(item.name) + '</h3>' +
-      '<span class="card-price">' + yen(item.price) + '</span></div>' +
-      '<div class="meta"><span class="chip">' + esc(item.category) + '</span>' +
-      '<span>' + dateLabel(item.decidedAt || item.createdAt) + 'に見送り・' + waited + '日寝かせた</span></div>' +
+      cardHead(item, true, '<div class="meta"><span class="chip">' + esc(item.category) + '</span>' +
+        '<span>' + dateLabel(item.decidedAt || item.createdAt) + 'に見送り・' + waited + '日寝かせた</span></div>') +
       reasonBlock(item) +
       '<div class="actions"><button class="btn btn-sm btn-quiet" type="button" data-act="undo" data-id="' + item.id + '">判定をもどす</button>' +
       '<span class="spacer"></span>' + deleteBtn(item) + '</div></article>';
@@ -301,14 +355,14 @@
           : '';
     }
     return '<article class="card">' +
-      '<div class="card-top"><h3 class="card-name">' + esc(item.name) + '</h3>' +
-      '<span class="card-price">' + yen(item.price) + '</span></div>' +
-      '<div class="meta"><span class="chip">' + esc(item.category) + '</span>' +
-      '<span>' + dateLabel(item.decidedAt || item.createdAt) + 'に購入</span></div>' +
+      cardHead(item, false, '<div class="meta"><span class="chip">' + esc(item.category) + '</span>' +
+        '<span>' + dateLabel(item.decidedAt || item.createdAt) + 'に購入</span></div>') +
       '<div class="urge"><span class="urge-label">買ってみて満足だった？</span><div class="dots">' + dots + '</div></div>' +
       verdict +
       '<div class="actions"><button class="btn btn-sm btn-quiet" type="button" data-act="undo" data-id="' + item.id + '">判定をもどす</button>' +
-      '<span class="spacer"></span>' + deleteBtn(item) + '</div></article>';
+      '<span class="spacer"></span>' +
+      (item.image ? '' : '<button class="btn btn-sm btn-quiet" type="button" data-act="add-photo" data-id="' + item.id + '">写真を追加</button>') +
+      deleteBtn(item) + '</div></article>';
   }
 
   /* ---- ふりかえり ---- */
@@ -493,6 +547,19 @@
     var act = t.dataset.act;
     var id = t.dataset.id;
 
+    if (act === 'zoom') { openLightbox(id); return; }
+    if (act === 'add-photo') { pickImageFor(id); return; }
+    if (act === 'pick-new') { pickImageFor('new'); return; }
+    if (act === 'clear-photo') { draftImage = null; renderDraftPhoto(); return; }
+    if (act === 'replace-photo') { pickImageFor(lightboxId); return; }
+    if (act === 'remove-photo') {
+      var pit = find(lightboxId);
+      if (pit) { delete pit.image; save(); }
+      closeLightbox();
+      render();
+      return;
+    }
+
     if (act === 'pass') { decide(id, 'passed'); return; }
     if (act === 'buy') { decide(id, 'bought'); return; }
 
@@ -584,6 +651,71 @@
     if (pendingDelete) { pendingDelete = null; render(); }
   }
 
+  /* ---- 写真の選択・表示 ---- */
+  var fileInput = $('fileInput');
+
+  function pickImageFor(target) {
+    if (!target) return;
+    photoTarget = target;
+    fileInput.value = '';
+    fileInput.click();
+  }
+
+  function applyImage(dataUrl) {
+    if (photoTarget === 'new') {
+      draftImage = dataUrl;
+      renderDraftPhoto();
+      return;
+    }
+    var it = find(photoTarget);
+    if (!it) return;
+    var prev = it.image;
+    it.image = dataUrl;
+    if (!save()) {
+      if (prev) it.image = prev; else delete it.image;
+    } else if (lightboxId === it.id) {
+      $('lightboxImg').src = it.image;
+    }
+    render();
+  }
+
+  fileInput.addEventListener('change', function () {
+    var f = fileInput.files && fileInput.files[0];
+    if (f) readImage(f, applyImage);
+  });
+
+  function renderDraftPhoto() {
+    var slot = $('photoSlot');
+    if (draftImage) {
+      slot.classList.add('has-image');
+      slot.innerHTML = '<img src="' + draftImage + '" alt="選んだ写真">' +
+        '<button class="photo-clear" type="button" data-act="clear-photo" aria-label="写真を消す">✕</button>';
+    } else {
+      slot.classList.remove('has-image');
+      slot.innerHTML = '<span>画像を選ぶ</span>';
+    }
+  }
+
+  $('photoSlot').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickImageFor('new'); }
+  });
+
+  function openLightbox(id) {
+    var it = find(id);
+    if (!it || !it.image || it.image.indexOf('data:image/') !== 0) return;
+    lightboxId = id;
+    $('lightboxImg').src = it.image;
+    $('lightbox').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    $('lightbox').hidden = true;
+    lightboxId = null;
+    if ($('overlay').hidden) document.body.style.overflow = '';
+  }
+  $('closeLightbox').addEventListener('click', closeLightbox);
+  $('lightbox').addEventListener('click', function (e) { if (e.target === this) closeLightbox(); });
+
   /* ---- 追加シート ---- */
   var overlay = $('overlay');
   var form = $('addForm');
@@ -603,13 +735,36 @@
     overlay.hidden = true;
     document.body.style.overflow = '';
     form.reset();
+    draftImage = null;
+    renderDraftPhoto();
     $('coolHint').textContent = '金額を入れると冷却期間が決まります。';
   }
 
   $('addBtn').addEventListener('click', openSheet);
   $('closeSheet').addEventListener('click', closeSheet);
   overlay.addEventListener('click', function (e) { if (e.target === overlay) closeSheet(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !overlay.hidden) closeSheet(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!$('lightbox').hidden) closeLightbox();
+    else if (!overlay.hidden) closeSheet();
+  });
+
+  // スクリーンショットの貼り付け
+  document.addEventListener('paste', function (e) {
+    if (overlay.hidden) return;
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image/') === 0) {
+        var f = items[i].getAsFile();
+        if (f) {
+          e.preventDefault();
+          photoTarget = 'new';
+          readImage(f, function (d) { draftImage = d; renderDraftPhoto(); toast('写真を貼り付けました。'); });
+        }
+        return;
+      }
+    }
+  });
 
   function updateHint() {
     var price = parseInt($('f-price').value, 10);
@@ -642,7 +797,8 @@
       createdAt: Date.now(),
       coolMs: days * DAY,
       status: 'cooling',
-      checkins: []
+      checkins: [],
+      image: draftImage || null
     });
     save();
     closeSheet();
