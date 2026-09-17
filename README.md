@@ -37,16 +37,37 @@
 - 長辺 720px の JPEG に縮小して端末内に保存します。外部のサーバーには送りません
 - 商品ページの URL から画像を自動取得することはしていません（サイト側の都合で表示できないうえ、閲覧先が外部に伝わるため）
 
-## 動かし方
+## アプリとして入れる（PWA）
 
-ビルド不要の静的サイトです。`index.html` をブラウザで開くだけで動きます。
+ホーム画面に追加すると、アドレスバーのない全画面のアプリとして開き、**電波がなくても動きます**。
+
+### 1. 公開する（最初の一度だけ）
+
+GitHub Pages で配信します。PWA には HTTPS が必要で、Pages はそれを満たします。
+
+1. リポジトリの **Settings → Pages** を開く
+2. **Source** を「Deploy from a branch」にする
+3. **Branch** に `claude/impulse-purchase-app-sif3y5` と `/ (root)` を選んで **Save**
+4. 1分ほどで `https://cool-fat-ryota.github.io/ClaudeCode/` が開くようになります
+
+### 2. ホーム画面に追加する
+
+- **iPhone / iPad（Safari）**：共有ボタン → 「ホーム画面に追加」
+- **Android（Chrome）**：右上のメニュー → 「アプリをインストール」。アプリ内の **•••** からも追加できます
+
+追加すると、泡とコインのアイコンが並び、起動時は水色の画面から立ち上がります。
+
+### 手元で動かす
+
+ビルド不要の静的サイトです。`index.html` をブラウザで開くだけでも動きます（Service Worker だけは `file://` では動きません）。
 
 ```
-open index.html          # macOS
 python3 -m http.server   # http://localhost:8000 で開く
 ```
 
-スマートフォンでは「ホーム画面に追加」をしておくと、ほしくなった瞬間に泡にできます。
+## ファイルの置き場所
+
+このアプリは GitHub の `cool-fat-ryota/ClaudeCode`、ブランチ `claude/impulse-purchase-app-sif3y5` にあります。
 
 ## データについて
 
@@ -61,3 +82,7 @@ python3 -m http.server   # http://localhost:8000 で開く
 | `index.html` | 画面の骨組み |
 | `styles.css` | 配色・泡やコインの動き（ライト / ダーク両対応） |
 | `app.js` | 期間の計算、保存、泡とコインの描画、ドット絵キャラの生成、写真の取り込み |
+| `manifest.json` | アプリ名・アイコン・全画面表示などの設定 |
+| `sw.js` | オフラインで開くためのキャッシュ（Service Worker） |
+| `icons/` | アプリアイコン（192 / 512 / マスク用 / iOS用 / favicon） |
+| `tools/make-icons.py` | そのアイコンを描き直すスクリプト（依存ライブラリなし） |

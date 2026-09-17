@@ -28,6 +28,13 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
+  var installPrompt = null;
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+  }
+  function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent); }
+
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
   function load() {
@@ -454,6 +461,19 @@
     html += '<div class="menu-sec"><h3>ふくらむ期間</h3>' +
       '<p class="hint">金額で自動的に決まります。1,000円未満は1日、5,000円未満は3日、20,000円未満は7日、50,000円未満は14日、それ以上は30日。</p></div>';
 
+    html += '<div class="menu-sec"><h3>アプリとして使う</h3>';
+    if (isStandalone()) {
+      html += '<p class="hint">ホーム画面のアイコンから開いています。電波がなくても使えます。</p>';
+    } else if (installPrompt) {
+      html += '<p class="hint">ホーム画面に置くと、アプリと同じように開けます。</p>' +
+        '<div class="actions-row" style="margin-top:10px"><button class="btn btn-sm" type="button" data-act="install">ホーム画面に追加</button></div>';
+    } else if (isIOS()) {
+      html += '<p class="hint">下の共有ボタン → 「ホーム画面に追加」を選ぶと、アプリのように全画面で開けます。</p>';
+    } else {
+      html += '<p class="hint">ブラウザのメニューから「アプリをインストール」または「ホーム画面に追加」を選ぶと、全画面で開けます。</p>';
+    }
+    html += '</div>';
+
     html += '<div class="menu-sec"><h3>データ</h3>' +
       '<p class="hint">この端末の中だけに保存されます。機種変更の前に書き出してください。</p>' +
       '<div class="actions-row" style="margin-top:10px">' +
@@ -698,6 +718,13 @@
       return;
     }
 
+    if (act === 'install') {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+      installPrompt.userChoice.then(function () { installPrompt = null; if (sheetMode === 'menu') renderSheet(); });
+      return;
+    }
+
     if (act === 'export') {
       $('dataBox').innerHTML = '<div class="field"><span class="field-label">コピーして保管してください</span>' +
         '<textarea id="dataOut" rows="4" readonly></textarea></div>';
@@ -759,8 +786,25 @@
     }
   });
 
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    installPrompt = e;
+    if (sheetMode === 'menu') renderSheet();
+  });
+  window.addEventListener('appinstalled', function () {
+    installPrompt = null;
+    toast('ホーム画面に追加しました。');
+  });
+
   /* ---- 起動 ---------------------------------------------------------- */
   renderScenery();
   render();
   setInterval(render, 30000);
+
+  // オフラインで開けるようにする（file:// や未対応環境では何もしない）
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0 && window.self === window.top) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () { /* 使えなくても通常どおり動く */ });
+    });
+  }
 })();

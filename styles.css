@@ -87,7 +87,11 @@ body{
   background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 52%,var(--sky-bottom) 100%);
   -webkit-font-smoothing:antialiased;
   overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-tap-highlight-color:transparent;
 }
+button{touch-action:manipulation}
+.top,.ground,.tank,.fab{user-select:none;-webkit-user-select:none}
 button,input,textarea{font:inherit;color:inherit}
 h1,h2,h3,p{margin:0}
 img{max-width:100%}
