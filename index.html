@@ -3,128 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>クールダウン貯金</title>
+<title>あわ貯金</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="wrap">
 
-  <header class="hero">
-    <p class="eyebrow">見送って貯まった金額</p>
-    <p class="saved" id="savedTotal">¥0</p>
-    <div class="hero-stats">
-      <div class="tile">
-        <span class="tile-label">今月の見送り</span>
-        <span class="tile-value" id="statMonth">¥0</span>
-      </div>
-      <div class="tile">
-        <span class="tile-label">見送り率</span>
-        <span class="tile-value" id="statRate">—</span>
-      </div>
-      <div class="tile">
-        <span class="tile-label" id="labelCooling">冷却中</span>
-        <span class="tile-value" id="statCooling">0件</span>
-      </div>
+<div class="app">
+
+  <header class="top">
+    <div class="top-row">
+      <span class="year" id="yearLabel">2026年のがまん貯金</span>
+      <button class="ghost-btn" type="button" data-act="open-menu" aria-label="メニュー">•••</button>
     </div>
-    <div class="goal" id="goalBox"></div>
+    <p class="total" id="total">¥0</p>
+    <p class="sub" id="sub"></p>
   </header>
 
-  <div class="banner" id="sampleBanner" hidden>
-    <p>いま表示されているのは使い方がわかるようにした<strong>サンプル</strong>です。</p>
-    <button class="btn btn-quiet" id="clearSample" type="button">サンプルを消して始める</button>
-  </div>
+  <section class="tank" id="tank" aria-label="ふくらませ中の泡">
+    <div class="sky-chars" id="skyChars" aria-hidden="true"></div>
+    <div class="bubbles" id="bubbles"></div>
+  </section>
 
-  <nav class="tabs" id="tabs" aria-label="表示の切り替え">
-    <button class="tab is-on" type="button" data-tab="cooling">クールダウン中<span class="count" id="c-cooling">0</span></button>
-    <button class="tab" type="button" data-tab="passed">見送った<span class="count" id="c-passed">0</span></button>
-    <button class="tab" type="button" data-tab="bought">買った<span class="count" id="c-bought">0</span></button>
-    <button class="tab" type="button" data-tab="review">ふりかえり</button>
-  </nav>
-
-  <main id="view"></main>
+  <section class="ground">
+    <div class="ground-char" id="groundChar" aria-hidden="true"></div>
+    <div class="tray" id="tray" aria-label="見送って貯まったコイン"></div>
+  </section>
 
 </div>
 
-<button class="fab" id="addBtn" type="button">
-  <span class="fab-plus" aria-hidden="true">＋</span>欲しいものを保留する
-</button>
+<button class="fab" id="addBtn" type="button"><span class="fab-plus" aria-hidden="true">＋</span>ほしいものを泡に</button>
 
 <div class="overlay" id="overlay" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-    <div class="sheet-head">
-      <h2 id="sheetTitle">欲しいものを保留する</h2>
-      <button class="icon-btn" id="closeSheet" type="button" aria-label="閉じる">✕</button>
-    </div>
-    <form id="addForm" class="form">
-      <label class="field">
-        <span class="field-label">なにが欲しい？</span>
-        <input id="f-name" name="name" type="text" required maxlength="60" placeholder="ワイヤレスイヤホン" autocomplete="off">
-      </label>
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label">いくら</span>
-          <div class="yen-input">
-            <span aria-hidden="true">¥</span>
-            <input id="f-price" name="price" type="number" required min="1" step="1" inputmode="numeric" placeholder="24800">
-          </div>
-        </label>
-        <label class="field">
-          <span class="field-label">カテゴリ</span>
-          <select id="f-cat" name="category"></select>
-        </label>
-      </div>
-      <label class="field">
-        <span class="field-label">なぜ欲しいと思った？</span>
-        <textarea id="f-reason" name="reason" rows="2" maxlength="200" placeholder="今の機種の充電が持たないから"></textarea>
-      </label>
-      <div class="field">
-        <span class="field-label">写真<span class="opt">任意</span></span>
-        <div class="photo-row" id="photoRow">
-          <div class="photo-slot" id="photoSlot" data-act="pick-new" role="button" tabindex="0">
-            <span>画像を選ぶ</span>
-          </div>
-          <p class="hint">商品ページのスクリーンショットでも、現物の写真でも。貼り付け（Ctrl / ⌘ + V）もできます。</p>
-        </div>
-      </div>
-      <label class="field">
-        <span class="field-label">リンク<span class="opt">任意</span></span>
-        <input id="f-url" name="url" type="url" placeholder="https://" autocomplete="off">
-      </label>
-      <label class="field">
-        <span class="field-label">冷却期間</span>
-        <select id="f-cool" name="cool">
-          <option value="auto" selected>自動（金額に応じて決める）</option>
-          <option value="1">1日</option>
-          <option value="3">3日</option>
-          <option value="7">7日</option>
-          <option value="14">14日</option>
-          <option value="30">30日</option>
-        </select>
-        <span class="hint" id="coolHint">金額を入れると冷却期間が決まります。</span>
-      </label>
-      <div class="sheet-foot">
-        <button class="btn btn-primary" type="submit">冷却をはじめる</button>
-      </div>
-    </form>
-  </div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="くわしく"></div>
 </div>
 
 <input type="file" id="fileInput" accept="image/*" hidden>
-
-<div class="lightbox" id="lightbox" hidden>
-  <div class="lightbox-inner">
-    <img id="lightboxImg" alt="保留している商品の写真">
-    <div class="lightbox-btns">
-      <button class="btn btn-sm" type="button" data-act="replace-photo">差し替える</button>
-      <button class="btn btn-sm btn-danger" type="button" data-act="remove-photo">写真を消す</button>
-      <button class="btn btn-sm" type="button" id="closeLightbox">閉じる</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast" hidden></div>
 
 <script src="app.js"></script>
