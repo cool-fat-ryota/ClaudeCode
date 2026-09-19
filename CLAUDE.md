@@ -4,55 +4,71 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## このリポジトリについて
 
-スマホ（主に iPhone）で使う PWA を並べて置く場所。各アプリはビルド不要の静的ファイルで、
-GitHub Pages がそのまま配信している。記録はすべて利用者の端末内に保存し、外部へは送らない。
+スマホ（主に iPhone）で使う PWA を並べて置く場所。**1アプリ＝直下の1フォルダ**で、
+リポジトリ直下はアプリ一覧（入口ページ）。ビルドも依存パッケージもなく、
+GitHub Pages が静的ファイルをそのまま配信する。
 
-- 公開 URL: <https://cool-fat-ryota.github.io/ClaudeCode/>（直下が入口ページ＝アプリ一覧）
-- `karaoke/` … カラオケ レパートリー帳
-- `bubble_money/` … あわ貯金
+- 公開 URL: <https://cool-fat-ryota.github.io/ClaudeCode/>
+- 各アプリの URL: `https://cool-fat-ryota.github.io/ClaudeCode/<アプリ名>/`
+- 今あるアプリの一覧は `README.md`。アプリごとの中身の説明は各フォルダの `README.md` に置く
+  （このファイルには個々のアプリの事情は書かない）
 
 ## 公開のしくみ
 
-- **Settings → Pages** は「Deploy from a branch」で、`claude/impulse-purchase-app-sif3y5` の `/ (root)` を配信している
+- **Settings → Pages** は「Deploy from a branch」で、`claude/impulse-purchase-app-sif3y5` の `/ (root)` を配信
 - このブランチが公開ブランチ兼デフォルトブランチ。**push するとそのまま本番に出る**
   （Actions の "pages build and deployment" が走り、1分ほどで反映）
 - PR は挟まず、このブランチへ直接 push している。コミットメッセージは日本語
 - `.nojekyll` があるので Jekyll の処理は入らない
 
+## アプリを増やすとき
+
+1. 直下に `<アプリ名>/`（英小文字・スネークケース）を作り、そのアプリのファイルを**すべてその中に**入れる
+   （`index.html` `sw.js` `manifest.webmanifest` `icons/` など。他のアプリと共有しない）
+2. 参照はすべて相対パス（`./`）。サブディレクトリ配信で動くことが前提
+3. `manifest` は `start_url` と `scope` を `"./"`、`display` は `standalone`
+4. `sw.js` はそのアプリのフォルダに置く（Service Worker のスコープがそのフォルダに限定される）
+5. 入口ページ `index.html` の一覧にカードを1つ足す（アイコンは `./<アプリ名>/icons/icon-192.png`）
+6. 直下の `README.md` の表に1行足す
+7. そのアプリに別の開発用リポジトリがある場合は、**そのアプリの README に明記**し、
+   直したときは両方へ反映する
+
+アプリを消す・名前を変えるときは、入口ページのカードと README の行も一緒に直す。
+URL が変わるとホーム画面のアイコンは古い URL を指したままになるので、その旨を利用者に伝える。
+
 ## 全アプリが同じオリジンを共有している（いちばん注意する点）
 
-`cool-fat-ryota.github.io` 配下に全アプリが同居するため、次が全アプリで共有される。
+`cool-fat-ryota.github.io` の配下に全アプリが同居するため、保存領域が全アプリで共有される。
 
-- **Cache Storage**: 各 `sw.js` の後片付けは自分の接頭辞（`CACHE_PREFIX`）のものだけにする。
+- **Cache Storage**: 各 `sw.js` の後片付けは自分の接頭辞（`CACHE_PREFIX`、例 `<アプリ名>-`）のものだけにする。
   `caches.keys()` を全部消す実装にすると、他のアプリのオフライン用キャッシュまで消える（実際に起きた）
-- **localStorage / IndexedDB**: 名前が衝突しないよう、アプリ固有の名前を付ける
-  （例: IndexedDB `karaoke-repertory` / Cache `karaoke-repertory-v2`・`awa-chokin-v1`）
-- **Service Worker のスコープ**: 各アプリの `sw.js` は自分のフォルダに置く（スコープがそのフォルダに限定される）。
-  直下の `sw.js` はスコープが全体に及ぶので、入口ページ自身のファイル以外には `respondWith` しない
+- **localStorage / IndexedDB**: 名前が衝突しないよう、アプリ名を含む固有の名前を付ける
+- **Service Worker のスコープ**: アプリの `sw.js` は必ず自分のフォルダに置く。
+  直下に置くとスコープが全アプリに及ぶ
 
-## アプリを追加するとき
+## 入口ページ（直下）
 
-1. `アプリ名/`（英小文字・スネークケース）を作り、`index.html` `sw.js` `manifest` `icons/` をその中に入れる
-2. 参照はすべて相対パス（`./`）。サブディレクトリ配信で動くことが前提
-3. manifest は `start_url` と `scope` を `"./"`、`display` は `standalone`
-4. 入口ページ `index.html` の一覧にカードを1つ足す（アイコンは `./アプリ名/icons/icon-192.png`）
-5. ルートの `README.md` の表にも1行足す
+`index.html` `manifest.webmanifest` `sw.js` `icons/` が入口ページ自身のファイル。
+直下の `sw.js` はスコープが全体に及ぶため、**入口ページ自身のファイル以外には `respondWith` しない**
+（それ以外はネットワークにそのまま任せる）。過去にここへ置かれていたアプリの
+古いキャッシュを片付ける処理もここに入っている。
 
-## iPhone (Safari) 向けの決まりごと
+## iPhone (Safari) 向けの共通ルール
 
 - `viewport` に `viewport-fit=cover`、余白は `env(safe-area-inset-*)`
 - 入力欄の `font-size` は 16px（下回ると入力時に画面が拡大される）
 - `backdrop-filter` は `-webkit-` を併記、`dvh` は `vh` のフォールバックを先に書く、`color-mix()` は使わない
 - `[hidden] { display: none !important; }` を入れる（`.field { display: flex }` などに負けて効かなくなる）
 - `<dialog>` + `showModal()` は iOS 15.4 以上。タップ領域は 40px 以上
-- 記録は端末内だけなので、JSON の書き出し・読み込みを付ける。`navigator.storage.persist()` も申請する
+- 記録は端末内だけに保存し、外部へは送らない。JSON の書き出し・読み込みを付け、
+  `navigator.storage.persist()` も申請する
 
 ## アイコンの作り方
 
 SVG を書き、Chromium で PNG にする（192 / 512 / maskable 512 / apple-touch 180 / favicon 32）。
-`/opt/pw-browsers/chromium-*/chrome-linux/chrome` と `playwright-core` を使って、
-サイズ指定のページに SVG を貼ってスクリーンショットを撮る。
-`bubble_money/tools/make-icons.py` は Python だけで生成する版。
+`/opt/pw-browsers/chromium-*/chrome-linux/chrome` と `playwright-core` を使い、
+サイズを指定したページに SVG を貼ってスクリーンショットを撮る。
+Python だけで生成する例は `bubble_money/tools/make-icons.py`。
 
 ## 動作確認
 
@@ -65,20 +81,7 @@ mkdir -p /tmp/site && cp -r . /tmp/site/ClaudeCode
 ```
 
 Service Worker まわりは Playwright（`playwright-core` ＋ 上記 Chromium）で、
-`context.setOffline(true)` でのオフライン起動と、
-複数アプリを順に開いた後もそれぞれのキャッシュが残っていることを確認する。
+iPhone サイズのビューポートを使い、次の2点を必ず見る。
 
-## 各アプリのメモ
-
-### karaoke/ — カラオケ レパートリー帳
-
-- 開発用リポジトリは private の `cool-fat-ryota/karaoke_repertory`（テストと履歴はそちら）。
-  **直したら両方に反映する**。公開側へ持ってくるのは
-  `index.html` `styles.css` `sw.js` `manifest.webmanifest` `js/` `icons/` `fonts/`
-- テスト: `cd karaoke && npm test`（Node 標準のテストランナー、依存パッケージなし）
-- データは IndexedDB `karaoke-repertory`。見出しに Bebas Neue を同梱（`fonts/`, SIL OFL）
-
-### bubble_money/ — あわ貯金
-
-- 単一の `app.js`。データは localStorage、写真は縮小して端末内に保存
-- 以前はリポジトリ直下にあったため、直下の `sw.js` にその頃の古いキャッシュを片付ける処理が入っている
+- `context.setOffline(true)` でオフライン起動できること
+- **複数のアプリを順に開いた後も、それぞれのキャッシュが残っていること**（消し合っていないこと）
