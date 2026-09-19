@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カラオケ レパートリー帳</title>
+<meta name="description" content="カラオケのレパートリーと練習したい曲を、キーと感想つきで記録するアプリ">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#08070d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="レパートリー帳">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="app-bar-row">
+    <h1>
+      <span class="brand-en">REPERTOIRE</span>
+      <span class="brand-jp">カラオケ レパートリー帳</span>
+    </h1>
+    <button type="button" id="open-settings" class="icon-btn" aria-label="設定">⚙</button>
+  </div>
+  <p class="stats" id="stats" aria-live="polite">読み込み中…</p>
+  <div class="filters">
+    <div class="tabs" role="tablist">
+      <button class="tab is-active" role="tab" data-status="">すべて</button>
+      <button class="tab" role="tab" data-status="repertoire">レパートリー</button>
+      <button class="tab" role="tab" data-status="practice">練習したい</button>
+    </div>
+    <div class="filter-row">
+      <input type="search" id="search" placeholder="曲名・アーティスト・感想で検索" aria-label="検索" enterkeyhint="search">
+      <select id="sort" aria-label="並び替え">
+        <option value="updated">更新順</option>
+        <option value="created">登録順</option>
+        <option value="title">曲名順</option>
+        <option value="artist">アーティスト順</option>
+        <option value="rating">自信度順</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main>
+  <ul id="song-list" class="song-list"></ul>
+  <p id="empty" class="empty" hidden></p>
+</main>
+
+<button type="button" id="open-add" class="fab" aria-label="曲を追加">＋</button>
+
+<!-- 曲の追加・編集シート -->
+<dialog id="song-sheet" class="sheet" aria-labelledby="sheet-title">
+  <form id="song-form" method="dialog" autocomplete="off">
+    <div class="sheet-bar">
+      <button type="button" class="link-btn" data-close>キャンセル</button>
+      <h2 id="sheet-title">曲を追加</h2>
+      <button type="submit" class="link-btn strong">保存</button>
+    </div>
+
+    <div class="sheet-body">
+      <label class="field">
+        <span>曲名</span>
+        <input type="text" id="title" name="title" required placeholder="例: Lemon" enterkeyhint="next">
+      </label>
+
+      <div class="field autocomplete">
+        <span>アーティスト</span>
+        <input type="text" id="artist" name="artist" required placeholder="入力すると候補が出ます"
+               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="artist-suggestions">
+        <ul id="artist-suggestions" class="suggestions" role="listbox" hidden></ul>
+      </div>
+
+      <label class="field" id="reading-field" hidden>
+        <span>よみがな（任意）— 入れておくと、かなでも候補に出せます</span>
+        <input type="text" id="artist-reading" placeholder="例: かくうばんど">
+      </label>
+
+      <div class="field">
+        <span>キー（原キーからの増減）</span>
+        <div class="key-stepper">
+          <button type="button" class="key-btn" data-step="-1" aria-label="キーを下げる">−</button>
+          <output id="key-display" class="key-display">原キー</output>
+          <button type="button" class="key-btn" data-step="1" aria-label="キーを上げる">＋</button>
+          <button type="button" class="link-btn" id="key-reset">原キーに戻す</button>
+        </div>
+        <input type="hidden" id="key" name="key" value="0">
+      </div>
+
+      <div class="field">
+        <span>リスト</span>
+        <div class="segmented" role="radiogroup" aria-label="リスト">
+          <label><input type="radio" name="status" value="repertoire" checked><span>レパートリー</span></label>
+          <label><input type="radio" name="status" value="practice"><span>練習したい</span></label>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>歌った感想・メモ</span>
+        <textarea id="impression" name="impression" rows="3"
+                  placeholder="例: サビの高音がきつい。キーを下げるといい感じ。"></textarea>
+      </label>
+
+      <details class="advanced">
+        <summary>YouTube Music のリンクを自分で指定する</summary>
+        <label class="field">
+          <span>リンク URL（空欄なら自動で設定します）</span>
+          <input type="url" id="youtube-url" name="youtubeUrl" inputmode="url"
+                 placeholder="https://music.youtube.com/watch?v=...">
+        </label>
+      </details>
+
+      <p class="form-message" id="form-message" role="status"></p>
+    </div>
+  </form>
+</dialog>
+
+<!-- 設定シート -->
+<dialog id="settings-sheet" class="sheet" aria-labelledby="settings-title">
+  <div class="sheet-bar">
+    <span class="link-btn spacer" aria-hidden="true"></span>
+    <h2 id="settings-title">設定</h2>
+    <button type="button" class="link-btn strong" data-close>閉じる</button>
+  </div>
+  <div class="sheet-body">
+    <section class="settings-group">
+      <h3>ホーム画面に追加</h3>
+      <p class="hint" id="install-hint">
+        iPhone は Safari の共有ボタン（□に↑）から「ホーム画面に追加」を選ぶと、
+        アプリとして全画面で起動できます。Android は Chrome のメニュー（⋮）から追加できます。
+      </p>
+      <button type="button" id="install-btn" class="wide-btn" hidden>ホーム画面に追加する</button>
+    </section>
+
+    <section class="settings-group">
+      <h3>YouTube Music のリンク</h3>
+      <p class="hint">
+        通常は曲名とアーティストで検索するリンクを自動設定します。
+        YouTube Data API のキーを入れると、曲そのもののページを自動で探します（任意）。
+      </p>
+      <label class="field">
+        <span>YouTube Data API キー（任意）</span>
+        <input type="password" id="api-key" placeholder="未設定" autocomplete="off">
+      </label>
+      <p class="hint">キーはこの端末の中だけに保存されます。</p>
+    </section>
+
+    <section class="settings-group">
+      <h3>データのバックアップ</h3>
+      <p class="hint">記録はこの端末の中だけに保存されます。機種変更の前に書き出しておくと安心です。</p>
+      <div class="settings-actions">
+        <button type="button" id="export-btn" class="wide-btn">ファイルに書き出す</button>
+        <button type="button" id="import-btn" class="wide-btn">ファイルから読み込む</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <section class="settings-group">
+      <h3>このアプリについて</h3>
+      <p class="hint" id="about-text"></p>
+    </section>
+  </div>
+</dialog>
+
+<template id="song-template">
+  <li class="song card">
+    <details>
+      <summary>
+        <div class="song-main">
+          <h2 class="title"></h2>
+          <p class="artist"></p>
+        </div>
+        <div class="song-side">
+          <span class="badge key-badge"></span>
+          <span class="badge status-badge"></span>
+        </div>
+      </summary>
+      <div class="song-body">
+        <div class="rating" role="group" aria-label="自信度"></div>
+        <label class="field">
+          <span>歌った感想</span>
+          <textarea class="impression" rows="3" placeholder="歌ってみた感想を書く…"></textarea>
+        </label>
+        <p class="song-note"></p>
+        <div class="song-actions">
+          <a class="chip yt-link" target="_blank" rel="noopener">▶ YouTube Music</a>
+          <button type="button" class="chip sang-today">今日歌った</button>
+          <button type="button" class="chip move"></button>
+          <button type="button" class="chip edit">編集</button>
+          <button type="button" class="chip danger delete">削除</button>
+        </div>
+      </div>
+    </details>
+  </li>
+</template>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

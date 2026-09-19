@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>あわ貯金</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a6e4ff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17264f" media="(prefers-color-scheme: dark)">
+<meta name="description" content="ほしいものを泡に閉じこめて、見送った金額をコインに変えるアプリ">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="あわ貯金">
+<link rel="apple-touch-icon" href="icons/apple-touch-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="top">
+    <div class="top-row">
+      <span class="year" id="yearLabel">2026年のがまん貯金</span>
+      <button class="ghost-btn" type="button" data-act="open-menu" aria-label="メニュー">•••</button>
+    </div>
+    <p class="total" id="total">¥0</p>
+    <p class="sub" id="sub"></p>
+  </header>
+
+  <section class="tank" id="tank" aria-label="ふくらませ中の泡">
+    <div class="sky-chars" id="skyChars" aria-hidden="true"></div>
+    <div class="bubbles" id="bubbles"></div>
+  </section>
+
+  <section class="ground">
+    <div class="ground-char" id="groundChar" aria-hidden="true"></div>
+    <div class="tray" id="tray" aria-label="見送って貯まったコイン"></div>
+  </section>
+
+</div>
+
+<button class="fab" id="addBtn" type="button"><span class="fab-plus" aria-hidden="true">＋</span>ほしいものを泡に</button>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="くわしく"></div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

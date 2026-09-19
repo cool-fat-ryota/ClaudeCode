@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="カラオケ レパートリー帳">
+  <defs>
+    <radialGradient id="glowPink" cx="22%" cy="8%" r="80%">
+      <stop offset="0" stop-color="#ff2e7e" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ff2e7e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="92%" cy="6%" r="75%">
+      <stop offset="0" stop-color="#00e0ff" stop-opacity=".40"/>
+      <stop offset="1" stop-color="#00e0ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="#08070d"/>
+  <rect width="512" height="512" rx="112" fill="url(#glowPink)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glowCyan)"/>
+
+  <g filter="url(#neon)" fill="none" stroke-linecap="round">
+    <!-- マイク -->
+    <g stroke="#ff2e7e" stroke-width="22">
+      <rect x="126" y="108" width="82" height="152" rx="41"/>
+      <path d="M96 230a71 71 0 0 0 142 0"/>
+      <path d="M167 302v56"/>
+      <path d="M118 372h98"/>
+    </g>
+    <!-- 八分音符 -->
+    <g stroke="#00e0ff" stroke-width="20">
+      <path d="M310 320V136l108-26v176"/>
+      <path d="M310 158l108-26"/>
+      <ellipse cx="277" cy="330" rx="36" ry="27" transform="rotate(-18 277 330)"/>
+      <ellipse cx="385" cy="300" rx="36" ry="27" transform="rotate(-18 385 300)"/>
+    </g>
+  </g>
+</svg>

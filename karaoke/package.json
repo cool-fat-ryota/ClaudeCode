@@ -1,0 +1,11 @@
+{
+  "name": "karaoke-repertory",
+  "version": "1.0.0",
+  "private": true,
+  "description": "カラオケのレパートリーと練習したい曲を記録するPWA",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python3 -m http.server 8765"
+  }
+}
