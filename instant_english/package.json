@@ -1,0 +1,11 @@
+{
+  "name": "instant-english",
+  "version": "1.0.0",
+  "private": true,
+  "description": "日本語を見て、すぐ英語で声に出す瞬間英作文のPWA",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "python3 -m http.server 8765"
+  }
+}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>瞬間英作文</title>
+<meta name="description" content="日本語を見て、すぐ英語で声に出す。1日5分のスピーキング練習。">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0c1018">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="瞬間英作文">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<!-- ══ ホーム ═══════════════════════════════════════════════ -->
+<section class="screen" id="home">
+  <header class="bar">
+    <h1 class="logo">瞬間<span>英作文</span></h1>
+    <button class="icon-button" id="open-settings" type="button" aria-label="設定">⚙</button>
+  </header>
+
+  <div class="scroll">
+    <div class="streak" id="streak-card">
+      <div class="streak-flame" id="streak-flame">🔥</div>
+      <div class="streak-body">
+        <p class="streak-count" id="streak-count">はじめまして</p>
+        <p class="streak-note" id="streak-note">今日の1セットから始めましょう。</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">何を練習しますか</h2>
+    <div class="segmented" id="course-mode" role="tablist">
+      <button type="button" role="tab" data-mode="auto" class="on">おまかせ</button>
+      <button type="button" role="tab" data-mode="step">文の形</button>
+      <button type="button" role="tab" data-mode="tag">場面</button>
+    </div>
+    <p class="hint" id="course-hint">苦手な文と新しい文を混ぜて出します。</p>
+    <div class="chips" id="course-choices" hidden></div>
+
+    <h2 class="section-title">どのくらい</h2>
+    <div class="segmented" id="length-choice">
+      <button type="button" data-length="short">3分<small>8問</small></button>
+      <button type="button" data-length="normal" class="on">5分<small>14問</small></button>
+      <button type="button" data-length="long">10分<small>28問</small></button>
+    </div>
+
+    <button class="start" id="start" type="button">
+      <span class="start-main">はじめる</span>
+      <span class="start-sub" id="start-sub">14問 · 復習 0 / 新しい文 14</span>
+    </button>
+
+    <div class="overview">
+      <div class="overview-head">
+        <span>覚えた文</span>
+        <span id="learned-count">0 / 216</span>
+      </div>
+      <div class="meter"><i id="learned-bar" style="width:0%"></i></div>
+      <p class="hint" id="mic-note"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 練習 ═════════════════════════════════════════════════ -->
+<section class="screen" id="drill" hidden>
+  <header class="bar">
+    <button class="icon-button" id="quit" type="button" aria-label="練習をやめる">✕</button>
+    <div class="meter thin"><i id="drill-bar" style="width:0%"></i></div>
+    <span class="counter" id="drill-counter">1 / 14</span>
+  </header>
+
+  <div class="stage">
+    <p class="pattern" id="pattern" hidden></p>
+    <p class="ja" id="ja">　</p>
+
+    <!-- 言う前 -->
+    <div class="phase" id="phase-ask">
+      <button class="mic" id="mic" type="button">
+        <span class="mic-icon">🎙</span>
+        <span class="mic-label" id="mic-label">タップして話す</span>
+      </button>
+      <button class="ghost" id="give-up" type="button">わからない・答えを見る</button>
+    </div>
+
+    <!-- 聞き取り中 -->
+    <div class="phase" id="phase-listen" hidden>
+      <div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="heard" id="heard">聞いています…</p>
+      <button class="primary" id="done-speaking" type="button">言い終わった</button>
+    </div>
+
+    <!-- 答え合わせ -->
+    <div class="phase" id="phase-answer" hidden>
+      <p class="verdict" id="verdict"><span class="verdict-mark">◎</span><span class="verdict-text">言えた</span></p>
+      <p class="en" id="en">　</p>
+      <p class="said" id="said" hidden></p>
+
+      <div class="play-row">
+        <button class="play" id="play-normal" type="button"><b>🔊</b>お手本</button>
+        <button class="play" id="play-slow" type="button"><b>🐢</b>ゆっくり</button>
+        <button class="play wide" id="play-overlap" type="button"><b>🔁</b><span id="overlap-label">重ねて言う ×3</span></button>
+      </div>
+
+      <div class="self">
+        <p class="self-title" id="self-title">自分ではどうでしたか</p>
+        <div class="self-row">
+          <button type="button" data-grade="good">◎ 言えた</button>
+          <button type="button" data-grade="close">△ 惜しい</button>
+          <button type="button" data-grade="again">× もう一度</button>
+        </div>
+      </div>
+
+      <button class="primary next" id="next" type="button">次へ</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 結果 ═════════════════════════════════════════════════ -->
+<section class="screen" id="result" hidden>
+  <header class="bar">
+    <h1 class="logo">おつかれさま</h1>
+  </header>
+  <div class="scroll">
+    <div class="score">
+      <p class="score-big" id="score-big">0%</p>
+      <p class="score-note" id="score-note">14問 · 3分42秒</p>
+      <div class="score-breakdown" id="score-breakdown"></div>
+    </div>
+    <h2 class="section-title" id="retry-title" hidden>もう一度出てくる文</h2>
+    <ul class="review-list" id="review-list"></ul>
+    <button class="start" id="again" type="button"><span class="start-main">もう1セット</span></button>
+    <button class="ghost" id="to-home" type="button">ホームにもどる</button>
+  </div>
+</section>
+
+<!-- ══ 設定 ═════════════════════════════════════════════════ -->
+<dialog id="settings">
+  <form method="dialog" class="sheet">
+    <div class="sheet-bar">
+      <h2>設定</h2>
+      <button class="icon-button" value="close" type="submit" aria-label="閉じる">✕</button>
+    </div>
+    <div class="sheet-body">
+      <label class="row">
+        <span>
+          音声認識をつかう
+          <small id="recognition-note">声を聞き取って、お手本と見くらべます。</small>
+        </span>
+        <input type="checkbox" id="set-recognition" class="switch">
+      </label>
+
+      <label class="row">
+        <span>文の形のヒントを出す<small>出題のときに「be動詞の疑問文」などを表示</small></span>
+        <input type="checkbox" id="set-pattern" class="switch">
+      </label>
+
+      <label class="row">
+        <span>答え合わせでお手本を自動再生<small></small></span>
+        <input type="checkbox" id="set-autospeak" class="switch">
+      </label>
+
+      <label class="row stacked">
+        <span>読み上げの声</span>
+        <select id="set-voice"></select>
+      </label>
+
+      <label class="row stacked">
+        <span>「ゆっくり」の速さ<small id="slow-value">0.75倍</small></span>
+        <input type="range" id="set-slow" min="0.5" max="1" step="0.05">
+      </label>
+
+      <label class="row stacked">
+        <span>重ねて言う回数<small id="overlap-value">3回</small></span>
+        <input type="range" id="set-overlap" min="2" max="6" step="1">
+      </label>
+
+      <h3>記録</h3>
+      <p class="hint">記録はこの端末の中だけに保存され、外には送られません。機種変更の前に書き出しておくと安心です。</p>
+      <div class="button-row">
+        <button class="ghost" id="export" type="button">ファイルに書き出す</button>
+        <button class="ghost" id="import" type="button">ファイルから読み込む</button>
+      </div>
+      <button class="ghost danger" id="reset" type="button">進み具合を全部消す</button>
+      <p class="hint" id="storage-note"></p>
+      <p class="hint version">216文 ·
+        <a href="https://github.com/cool-fat-ryota/ClaudeCode" target="_blank" rel="noopener">ソース</a>
+      </p>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+<p class="toast" id="toast" hidden></p>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

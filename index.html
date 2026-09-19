@@ -61,6 +61,14 @@
     </span>
   </a>
 
+  <a class="app" href="./instant_english/">
+    <img src="./instant_english/icons/icon-192.png" alt="">
+    <span>
+      <h2>瞬間英作文</h2>
+      <p>日本語を見て、すぐ英語で声に出す。1日5分のスピーキング練習</p>
+    </span>
+  </a>
+
   <a class="app" href="./bubble_money/">
     <img src="./bubble_money/icons/icon-192.png" alt="">
     <span>
@@ -70,14 +78,14 @@
   </a>
 
   <footer>
-    どちらも記録は端末の中だけに保存され、オフラインでも使えます。
+    記録はどれも端末の中だけに保存され、オフラインでも使えます。
   </footer>
 </main>
 
 <script>
   // このページを電波がなくても開けるようにする。
   // ここで登録する Service Worker は入口ページ自身のファイルだけを扱い、
-  // 各アプリ（karaoke/ や bubble_money/）の通信には手を出さない。
+  // 各アプリ（karaoke/ や bubble_money/ や instant_english/）の通信には手を出さない。
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
       navigator.serviceWorker.register("./sw.js").catch(function () {});

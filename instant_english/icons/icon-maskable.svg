@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="瞬間英作文">
+  <defs>
+    <linearGradient id="bubble2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6bf0b6"/>
+      <stop offset="1" stop-color="#35c98b"/>
+    </linearGradient>
+  </defs>
+  <!-- マスクで角が切られても残るよう、背景は全面・絵は中央80%に収める -->
+  <rect width="512" height="512" fill="#11172233"/>
+  <rect width="512" height="512" fill="#131a26"/>
+  <path fill="url(#bubble2)" d="M164 146h184a48 48 0 0 1 48 48v116a48 48 0 0 1-48 48h-108l-56 48a10 10 0 0 1-17-8v-40h-3a48 48 0 0 1-48-48V194a48 48 0 0 1 48-48z"/>
+  <g fill="#131a26">
+    <rect x="186" y="226" width="22" height="40" rx="11"/>
+    <rect x="223" y="198" width="22" height="96" rx="11"/>
+    <rect x="260" y="176" width="22" height="140" rx="11"/>
+    <rect x="297" y="206" width="22" height="80" rx="11"/>
+    <rect x="334" y="230" width="22" height="32" rx="11"/>
+  </g>
+</svg>

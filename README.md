@@ -8,15 +8,17 @@ GitHub Pages で配信していて、それぞれホーム画面に追加する�
 | --- | --- | --- |
 | [カラオケ レパートリー帳](karaoke/) | https://cool-fat-ryota.github.io/ClaudeCode/karaoke/ | 歌える曲と練習したい曲を、キーと感想つきで記録する |
 | [あわ貯金](bubble_money/) | https://cool-fat-ryota.github.io/ClaudeCode/bubble_money/ | ほしいものを泡に閉じこめて、見送った金額をコインに変える |
+| [瞬間英作文](instant_english/) | https://cool-fat-ryota.github.io/ClaudeCode/instant_english/ | 日本語を見て、すぐ英語で声に出す。1日5分のスピーキング練習 |
 
-入口ページ（https://cool-fat-ryota.github.io/ClaudeCode/ ）には両方へのリンクが並びます。
+入口ページ（https://cool-fat-ryota.github.io/ClaudeCode/ ）には全部へのリンクが並びます。
 
 ## ホーム画面に追加する
 
 - **iPhone / iPad（Safari）**: 使いたいアプリの URL を開き、共有ボタン（□に↑）→「ホーム画面に追加」
 - **Android（Chrome）**: メニュー（⋮）→「アプリをインストール」
 
-記録はどちらも端末の中だけに保存され、外部のサーバーには送られません。
+記録はどれも端末の中だけに保存され、外部のサーバーには送られません。
+（瞬間英作文の音声認識だけは、声を文字にするために端末の外の仕組みを使います。設定でオフにできます。）
 
 ## 公開のしくみ
 
