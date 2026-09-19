@@ -91,6 +91,7 @@
     <!-- 聞き取り中 -->
     <div class="phase" id="phase-listen" hidden>
       <div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="rec-note" id="rec-note" hidden><i></i>録音中</p>
       <p class="heard" id="heard">聞いています…</p>
       <button class="primary" id="done-speaking" type="button">言い終わった</button>
     </div>
@@ -101,10 +102,18 @@
       <p class="en" id="en">　</p>
       <p class="said" id="said" hidden></p>
 
-      <div class="play-row">
-        <button class="play" id="play-normal" type="button"><b>🔊</b>お手本</button>
-        <button class="play" id="play-slow" type="button"><b>🐢</b>ゆっくり</button>
-        <button class="play wide" id="play-overlap" type="button"><b>🔁</b><span id="overlap-label">重ねて言う ×3</span></button>
+      <div class="plays">
+        <div class="play-row">
+          <button class="play" id="play-normal" type="button"><b>🔊</b>お手本</button>
+          <button class="play" id="play-slow" type="button"><b>🐢</b>ゆっくり</button>
+        </div>
+        <div class="play-row" id="mine-row" hidden>
+          <button class="play" id="play-mine" type="button"><b>🙂</b>自分の声</button>
+          <button class="play" id="play-compare" type="button"><b>🎧</b><span id="compare-label">聞き比べ</span></button>
+        </div>
+        <div class="play-row">
+          <button class="play wide" id="play-overlap" type="button"><b>🔁</b><span id="overlap-label">重ねて言う ×3</span></button>
+        </div>
       </div>
 
       <div class="self">
@@ -153,6 +162,14 @@
           <small id="recognition-note">声を聞き取って、お手本と見くらべます。</small>
         </span>
         <input type="checkbox" id="set-recognition" class="switch">
+      </label>
+
+      <label class="row">
+        <span>
+          自分の声を録音する
+          <small id="record-note">答え合わせでお手本と聞き比べられます。</small>
+        </span>
+        <input type="checkbox" id="set-record" class="switch">
       </label>
 
       <label class="row">

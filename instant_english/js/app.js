@@ -10,6 +10,7 @@ import { buildSession, summarize, lengthOf, LENGTHS, filterPhrases } from "./ses
 import { review, blankProgress, isDue, isLearned, dayKey } from "./srs.js";
 import { bestMatch } from "./match.js";
 import { Voice, Listener, ERROR_MESSAGES } from "./speech.js";
+import { Recorder, Player } from "./record.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (text) =>
@@ -17,6 +18,8 @@ const esc = (text) =>
 
 const voice = new Voice();
 const listener = new Listener();
+const recorder = new Recorder();
+const player = new Player();
 
 const state = {
   store: null,
@@ -26,7 +29,14 @@ const state = {
   course: { mode: "auto", value: null },
   session: null,
   current: null,
+  retry: [],        // 結果画面に出している文（録った声もここに付いている）
+  micConflicts: 0,  // 録音と音声認識がぶつかった回数
 };
+
+/** 「言い終わった」を押されるのを待つとき、その解決役を入れておく */
+let doneSpeaking = null;
+/** 聞き比べを再生中か */
+let comparing = false;
 
 /* ══ 画面の切り替え ══════════════════════════════════════ */
 
@@ -122,12 +132,13 @@ function renderHome() {
   $("start-sub").textContent = `${courseLabel()} · ${count}問（復習 ${reviewCount} / 新しい文 ${count - reviewCount}）`;
 
   const note = $("mic-note");
+  const recording = recorder.supported && state.settings.record ? "録音した自分の声を、お手本と聞き比べられます。" : "";
   if (!listener.supported) {
-    note.textContent = "この端末のブラウザでは音声認識が使えません。声に出したあと、自分で「言えた／惜しい／もう一度」を選んで進みます。";
+    note.textContent = "この端末のブラウザでは音声認識が使えません。声に出したあと、自分で「言えた／惜しい／もう一度」を選んで進みます。" + recording;
   } else if (!state.settings.useRecognition) {
-    note.textContent = "音声認識はオフです。声に出したあと、自分で判定して進みます。";
+    note.textContent = "音声認識はオフです。声に出したあと、自分で判定して進みます。" + recording;
   } else {
-    note.textContent = "音声認識は通信を使います（端末の外で文字にする仕組みのため）。オフラインのときは設定でオフにしてください。";
+    note.textContent = "音声認識は通信を使います（端末の外で文字にする仕組みのため）。オフラインのときは設定でオフにしてください。" + recording;
   }
 }
 
@@ -167,52 +178,98 @@ function showPhrase() {
   $("pattern").textContent = phrase.pattern;
   $("pattern").hidden = !state.settings.showPattern;
 
-  const canListen = listener.supported && state.settings.useRecognition;
-  $("mic").classList.toggle("quiet", !canListen);
-  $("mic-label").textContent = canListen ? "タップして話す" : "言えたらタップ";
-  $("mic").querySelector(".mic-icon").textContent = canListen ? "🎙" : "💬";
-  $("give-up").hidden = !canListen;
+  const listening = canListen();
+  const interactive = listening || canRecord();
+  $("mic").classList.toggle("quiet", !interactive);
+  $("mic-label").textContent = listening ? "タップして話す" : interactive ? "タップして録音" : "言えたらタップ";
+  $("mic").querySelector(".mic-icon").textContent = interactive ? "🎙" : "💬";
+  $("give-up").hidden = !interactive;
   $("heard").textContent = "聞いています…";
   $("heard").classList.remove("live");
+  $("rec-note").hidden = true;
+  $("mine-row").hidden = true;
+  stopCompare();
 
   phase("ask");
 }
 
+const canListen = () => listener.supported && state.settings.useRecognition;
+const canRecord = () => recorder.supported && state.settings.record;
+
 async function listen() {
   voice.unlock();
   voice.stop();
-  if (!listener.supported || !state.settings.useRecognition) return reveal(null);
+  player.stop();
+
+  const listening = canListen();
+  const recordWanted = canRecord();
+  if (!listening && !recordWanted) return reveal(null, null);
 
   phase("listen");
-  $("heard").textContent = "聞いています…";
+  $("heard").textContent = listening ? "聞いています…" : "どうぞ。言い終わったらボタンを押してください。";
   $("heard").classList.remove("live");
 
-  const { heard, error } = await listener.listen({
-    onInterim: (text) => {
-      $("heard").textContent = text;
-      $("heard").classList.add("live");
-    },
-  });
+  // マイクは録音のほうから先に押さえる（音声認識と取り合いにならないように）
+  const recording = recordWanted ? await recorder.start() : false;
+  $("rec-note").hidden = !recording;
+
+  let heard = [];
+  let error = "";
+  if (listening) {
+    ({ heard, error } = await listener.listen({
+      onInterim: (text) => {
+        $("heard").textContent = text;
+        $("heard").classList.add("live");
+      },
+    }));
+  } else {
+    await new Promise((resolve) => {
+      doneSpeaking = resolve;
+    });
+    doneSpeaking = null;
+  }
+
+  const blob = recording ? await recorder.stop() : null;
+  $("rec-note").hidden = true;
 
   if (!state.session || $("drill").hidden) return; // 途中でやめた
   if (heard.length) {
-    reveal(bestMatch(heard, [state.current.phrase.en, ...state.current.phrase.alts]));
-  } else {
-    if (error && ERROR_MESSAGES[error] !== "") toast(ERROR_MESSAGES[error] ?? "うまく聞き取れませんでした。");
-    if (error === "not-allowed" || error === "service-not-allowed") {
-      state.settings.useRecognition = false;
-      state.store?.setSetting("useRecognition", false).catch(() => {});
+    reveal(bestMatch(heard, [state.current.phrase.en, ...state.current.phrase.alts]), blob);
+    return;
+  }
+  if (listening) handleListenError(error, recording);
+  reveal(null, blob);
+}
+
+/** 聞き取れなかったときの後始末。録音できていたならマイク自体は生きている。 */
+function handleListenError(error, recording) {
+  if (recording && (error === "audio-capture" || error === "not-allowed")) {
+    state.micConflicts += 1;
+    if (state.micConflicts >= 2) {
+      set("record", false);
       syncSettingsForm();
+      toast("録音と音声認識が同時に使えないようなので、録音をオフにしました。設定で戻せます。");
+    } else {
+      toast("録音と音声認識がぶつかったようです。次もだめなら録音をオフにします。");
     }
-    reveal(null);
+    return;
+  }
+  if (error && ERROR_MESSAGES[error] !== "") toast(ERROR_MESSAGES[error] ?? "うまく聞き取れませんでした。");
+  if (error === "not-allowed" || error === "service-not-allowed") {
+    state.settings.useRecognition = false;
+    state.store?.setSetting("useRecognition", false).catch(() => {});
+    syncSettingsForm();
   }
 }
 
-/** match が null のときは判定なし（自己申告で決める） */
-function reveal(match) {
+/** match が null のときは判定なし（自己申告で決める）。blob は録れた自分の声。 */
+function reveal(match, blob = null) {
   const phrase = state.current.phrase;
   state.current.match = match;
+  state.current.blob = blob;
   state.current.grade = match ? match.grade : null;
+  $("mine-row").hidden = !blob;
+  stopCompare();
 
   const verdict = $("verdict");
   const labels = { good: ["◎", "言えた"], close: ["△", "惜しい"], again: ["×", "もう一度"] };
@@ -265,6 +322,55 @@ function answerText() {
   return state.current?.match?.answer ?? state.current?.phrase.en ?? "";
 }
 
+/** 録れた自分の声を鳴らす（もう一度押すと止まる） */
+async function playMine() {
+  const blob = state.current?.blob;
+  if (!blob) return;
+  voice.stopLoop();
+  setOverlapLabel(0);
+  stopCompare();
+  if (player.playing) {
+    player.stop();
+    $("play-mine").classList.remove("on");
+    return;
+  }
+  $("play-mine").classList.add("on");
+  await player.play(blob);
+  $("play-mine").classList.remove("on");
+}
+
+/** お手本 → 自分の声 の順に続けて鳴らす */
+async function playCompare() {
+  const blob = state.current?.blob;
+  if (!blob) return;
+  if (comparing) return stopCompare();
+  voice.stopLoop();
+  setOverlapLabel(0);
+  player.stop();
+  $("play-mine").classList.remove("on");
+
+  comparing = true;
+  $("play-compare").classList.add("on");
+  $("compare-label").textContent = "お手本…";
+  await voice.speak(answerText());
+  if (!comparing) return;
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  if (!comparing) return;
+  $("compare-label").textContent = "あなた…";
+  await player.play(blob);
+  stopCompare();
+}
+
+function stopCompare() {
+  if (comparing) {
+    voice.stop();
+    player.stop();
+  }
+  comparing = false;
+  $("play-compare").classList.remove("on");
+  $("compare-label").textContent = "聞き比べ";
+}
+
 async function toggleOverlap() {
   if (voice.looping) {
     voice.stopLoop();
@@ -292,6 +398,8 @@ function setGrade(grade) {
 
 async function nextPhrase() {
   voice.stopLoop();
+  stopCompare();
+  player.stop();
   const grade = state.current.grade;
   if (!grade) return toast("「言えた／惜しい／もう一度」を選んでください。");
 
@@ -299,7 +407,7 @@ async function nextPhrase() {
   const today = dayKey();
   const updated = review(state.progress[phrase.id] ?? blankProgress(phrase.id), grade, today);
   state.progress[phrase.id] = updated;
-  state.session.results.push({ id: phrase.id, grade, ja: phrase.ja, en: phrase.en });
+  state.session.results.push({ id: phrase.id, grade, ja: phrase.ja, en: phrase.en, blob: state.current.blob });
 
   try {
     await state.store?.saveProgress([updated]);
@@ -340,12 +448,16 @@ function finishSession() {
     .join("");
 
   const retry = results.filter((r) => r.grade !== "good");
+  state.retry = retry;
   $("retry-title").hidden = retry.length === 0;
   $("review-list").innerHTML = retry
     .map(
-      (r) => `<li>
+      (r, index) => `<li>
         <div class="texts"><p class="r-en">${esc(r.en)}</p><p class="r-ja">${esc(r.ja)}</p></div>
-        <button type="button" data-say="${esc(r.en)}" aria-label="読み上げる">🔊</button>
+        <div class="plays-mini">
+          <button type="button" data-say="${esc(r.en)}" aria-label="お手本を聞く">🔊</button>
+          ${r.blob ? `<button type="button" data-mine="${index}" aria-label="自分の声を聞く">🙂</button>` : ""}
+        </div>
       </li>`
     )
     .join("");
@@ -357,7 +469,14 @@ function finishSession() {
 
 function quitDrill() {
   listener.abort();
+  if (doneSpeaking) {
+    doneSpeaking();
+    doneSpeaking = null;
+  }
+  recorder.discard();
   voice.stopLoop();
+  stopCompare();
+  player.stop();
   state.session = null;
   state.current = null;
   renderHome();
@@ -373,6 +492,11 @@ function syncSettingsForm() {
   $("recognition-note").textContent = listener.supported
     ? "声を聞き取ってお手本と見くらべます。聞き取りには通信が必要です。"
     : "このブラウザでは使えません（iPhone は Safari をお試しください）。";
+  $("set-record").checked = s.record && recorder.supported;
+  $("set-record").disabled = !recorder.supported;
+  $("record-note").textContent = recorder.supported
+    ? "答え合わせでお手本と聞き比べられます。録った声は端末にも保存されず、アプリを閉じると消えます。"
+    : "このブラウザでは録音が使えません。";
   $("set-pattern").checked = s.showPattern;
   $("set-autospeak").checked = s.autoSpeak;
   $("set-slow").value = s.slowRate;
@@ -501,25 +625,39 @@ function wire() {
 
   // 練習
   $("mic").addEventListener("click", listen);
-  $("done-speaking").addEventListener("click", () => listener.stop());
+  $("done-speaking").addEventListener("click", () => {
+    // 音声認識を使っているときは締めると結果が返る。録音だけのときは自分で解決する。
+    if (doneSpeaking) doneSpeaking();
+    else listener.stop();
+  });
   $("give-up").addEventListener("click", () => {
     voice.unlock();
-    reveal(null);
+    reveal(null, null);
     setGrade("again");
   });
   $("quit").addEventListener("click", quitDrill);
   $("next").addEventListener("click", nextPhrase);
   $("play-normal").addEventListener("click", () => {
     voice.stopLoop();
+    stopCompare();
+    player.stop();
     setOverlapLabel(0);
     voice.speak(answerText());
   });
   $("play-slow").addEventListener("click", () => {
     voice.stopLoop();
+    stopCompare();
+    player.stop();
     setOverlapLabel(0);
     voice.speak(answerText(), { rate: state.settings.slowRate });
   });
-  $("play-overlap").addEventListener("click", toggleOverlap);
+  $("play-mine").addEventListener("click", playMine);
+  $("play-compare").addEventListener("click", playCompare);
+  $("play-overlap").addEventListener("click", () => {
+    stopCompare();
+    player.stop();
+    toggleOverlap();
+  });
   $("phase-answer").querySelector(".self-row").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-grade]");
     if (button) setGrade(button.dataset.grade);
@@ -528,12 +666,23 @@ function wire() {
   // 結果
   $("again").addEventListener("click", startSession);
   $("to-home").addEventListener("click", () => {
+    voice.stop();
+    player.stop();
     renderHome();
     show("home");
   });
   $("review-list").addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-say]");
-    if (button) voice.speak(button.dataset.say);
+    const say = event.target.closest("button[data-say]");
+    if (say) {
+      player.stop();
+      voice.speak(say.dataset.say);
+      return;
+    }
+    const mine = event.target.closest("button[data-mine]");
+    if (mine) {
+      voice.stop();
+      player.play(state.retry[Number(mine.dataset.mine)]?.blob);
+    }
   });
 
   // 設定
@@ -547,6 +696,11 @@ function wire() {
   });
   $("set-recognition").addEventListener("change", (e) => {
     set("useRecognition", e.target.checked);
+    renderHome();
+  });
+  $("set-record").addEventListener("change", (e) => {
+    set("record", e.target.checked);
+    state.micConflicts = 0;
     renderHome();
   });
   $("set-pattern").addEventListener("change", (e) => set("showPattern", e.target.checked));
@@ -577,6 +731,8 @@ function wire() {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       voice.stopLoop();
+      stopCompare();
+      player.stop();
       listener.abort();
     }
   });
@@ -592,6 +748,7 @@ async function init() {
     toast("記録を保存できない設定になっています。練習はできますが、進み具合は残りません。");
   }
   if (!listener.supported) state.settings.useRecognition = false;
+  if (!recorder.supported) state.settings.record = false;
   voice.preferred = state.settings.voiceId;
 
   for (const b of $("length-choice").children) b.classList.toggle("on", b.dataset.length === state.settings.length);

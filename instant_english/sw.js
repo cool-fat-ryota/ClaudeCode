@@ -4,7 +4,7 @@
 // 後片付けは必ず自分の接頭辞のものだけにすること（caches.keys() を全部消さない）。
 
 const CACHE_PREFIX = "instant-english-";
-const CACHE = `${CACHE_PREFIX}v1`;
+const CACHE = `${CACHE_PREFIX}v2`;
 
 const APP_SHELL = [
   "./",
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "./manifest.webmanifest",
   "./js/app.js",
   "./js/match.js",
+  "./js/record.js",
   "./js/session.js",
   "./js/speech.js",
   "./js/srs.js",

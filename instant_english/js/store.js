@@ -30,6 +30,7 @@ function openDatabase(indexedDB = globalThis.indexedDB) {
 
 export const DEFAULT_SETTINGS = {
   useRecognition: true,  // 音声認識を使う
+  record: true,          // 自分の声を録って聞き比べる
   length: "normal",      // 練習の長さ
   voiceId: "",           // 読み上げの声
   slowRate: 0.75,        // 「ゆっくり」の速さ

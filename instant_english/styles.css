@@ -281,6 +281,25 @@ button { cursor: pointer; border: none; background: none; }
 @keyframes pulse { 0%, 100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
 @media (prefers-reduced-motion: reduce) { .wave i { animation: none; } }
 
+.rec-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 14px 0 0;
+  font-size: .76rem;
+  color: var(--coral);
+}
+.rec-note i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--coral);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .rec-note i { animation: none; } }
+
 .heard {
   text-align: center;
   color: var(--muted);
@@ -323,7 +342,8 @@ button { cursor: pointer; border: none; background: none; }
 .said { font-size: .82rem; color: var(--muted); margin: 0 0 4px; word-break: break-word; }
 .said .extra { color: var(--amber); }
 
-.play-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.plays { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.play-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .play {
   flex: 1 1 0;
   min-width: 96px;
@@ -340,6 +360,8 @@ button { cursor: pointer; border: none; background: none; }
 .play b { font-size: 1rem; font-weight: 400; }
 .play.wide { flex-basis: 100%; }
 .play.on { border-color: var(--mint); color: var(--mint); background: var(--mint-dark); }
+#play-mine, #play-compare { border-style: dashed; }
+#play-mine.on, #play-compare.on { border-style: solid; }
 .play:active { transform: scale(.98); }
 
 .self { margin-top: 22px; }
@@ -380,6 +402,7 @@ button { cursor: pointer; border: none; background: none; }
 .review-list .texts { min-width: 0; flex: 1; }
 .review-list .r-en { font-size: .92rem; font-weight: 700; margin: 0; word-break: break-word; }
 .review-list .r-ja { font-size: .74rem; color: var(--muted); margin: 2px 0 0; }
+.review-list .plays-mini { display: flex; gap: 6px; flex-shrink: 0; }
 .review-list button {
   width: 44px;
   height: 44px;
@@ -388,6 +411,7 @@ button { cursor: pointer; border: none; background: none; }
   flex-shrink: 0;
   font-size: 1rem;
 }
+.review-list button[data-mine] { border: 1px dashed var(--line); }
 
 /* ── 設定シート ─────────────────────────────────────────── */
 dialog {
