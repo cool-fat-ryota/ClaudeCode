@@ -60,6 +60,9 @@ export function buildSong(input = {}, { now = new Date().toISOString() } = {}) {
     impression: (input.impression || "").trim(),
     youtubeUrl,
     youtubeAuto: youtubeUrl ? false : true,
+    artwork: input.artwork ?? null, // ジャケット画像（Blob）
+    artworkUrl: (input.artworkUrl || "").trim(), // 画像を取ってきた URL（Blob を持てなかったとき用）
+    artworkSource: input.artworkSource || null, // "itunes" / "youtube" / "manual"
     lastSungOn: input.lastSungOn || null,
     createdAt: input.createdAt || now,
     updatedAt: now,
@@ -103,6 +106,15 @@ export function applyChanges(song, changes = {}, { now = new Date().toISOString(
       case "youtubeAuto":
         updated.youtubeAuto = Boolean(value);
         break;
+      case "artwork":
+        updated.artwork = value || null;
+        break;
+      case "artworkUrl":
+        updated.artworkUrl = (value || "").trim();
+        break;
+      case "artworkSource":
+        updated.artworkSource = value || null;
+        break;
       case "lastSungOn":
         updated.lastSungOn = value || null;
         break;
@@ -143,6 +155,11 @@ export const SORTS = {
 
 export function sortSongs(songs, sort = "updated") {
   return [...songs].sort(SORTS[sort] || SORTS.updated);
+}
+
+/** ジャケット画像を持っているか（Blob でも URL でも可）。 */
+export function hasArtwork(song) {
+  return Boolean(song && (song.artwork || song.artworkUrl));
 }
 
 export function computeStats(songs) {

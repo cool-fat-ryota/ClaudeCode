@@ -1,7 +1,10 @@
 // オフラインでも起動できるようにアプリ本体をキャッシュする Service Worker。
 
 const CACHE_PREFIX = "karaoke-repertory-";
-const CACHE = `${CACHE_PREFIX}v2`;
+const CACHE = `${CACHE_PREFIX}v3`;
+// ジャケット画像（他のサイトの画像）は別のキャッシュに入れ、版が上がっても消さない
+const ARTWORK_CACHE = `${CACHE_PREFIX}artwork`;
+const ARTWORK_HOSTS = ["i.ytimg.com"];
 
 const APP_SHELL = [
   "./",
@@ -14,6 +17,8 @@ const APP_SHELL = [
   "./js/text.js",
   "./js/youtube.js",
   "./js/artist-seed.js",
+  "./js/artwork.js",
+  "./js/image.js",
   "./fonts/bebas-neue-latin.woff2",
   "./icons/icon.svg",
   "./icons/icon-192.png",
@@ -33,7 +38,7 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       // 同じドメインに別のアプリが同居していることがあるので、自分の古い版だけを消す
-      .then((keys) => keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE))
+      .then((keys) => keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE && key !== ARTWORK_CACHE))
       .then((stale) => Promise.all(stale.map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
@@ -44,7 +49,25 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return; // YouTube API などは素通し
+
+  if (url.origin !== self.location.origin) {
+    // ジャケット画像だけは、電波がなくても表示できるように取っておく
+    const isArtwork = ARTWORK_HOSTS.includes(url.hostname) || url.hostname.endsWith("mzstatic.com");
+    if (!isArtwork) return; // YouTube API などは素通し
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((response) => {
+            // 他のサイトの画像は中身を読めない（opaque）が、キャッシュには入れられる
+            const copy = response.clone();
+            caches.open(ARTWORK_CACHE).then((cache) => cache.put(request, copy));
+            return response;
+          })
+      )
+    );
+    return;
+  }
 
   // 画面の読み込みは、まずネットワーク（更新の反映）、だめならキャッシュ
   if (request.mode === "navigate") {

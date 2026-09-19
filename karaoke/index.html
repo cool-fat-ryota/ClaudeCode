@@ -80,6 +80,20 @@
       </label>
 
       <div class="field">
+        <span>ジャケット画像</span>
+        <div class="artwork-row">
+          <span class="artwork-preview"><img id="artwork-preview" alt="" hidden></span>
+          <div class="artwork-buttons">
+            <button type="button" class="wide-btn" id="artwork-search">自動で探す</button>
+            <button type="button" class="wide-btn" id="artwork-pick">写真から選ぶ</button>
+            <button type="button" class="link-btn" id="artwork-clear" hidden>画像を消す</button>
+            <input type="file" id="artwork-file" accept="image/*" hidden>
+          </div>
+        </div>
+        <p class="hint" id="artwork-status"></p>
+      </div>
+
+      <div class="field">
         <span>キー（原キーからの増減）</span>
         <div class="key-stepper">
           <button type="button" class="key-btn" data-step="-1" aria-label="キーを下げる">−</button>
@@ -149,6 +163,20 @@
     </section>
 
     <section class="settings-group">
+      <h3>ジャケット画像</h3>
+      <p class="hint">
+        曲を追加したときに、曲名とアーティスト名でジャケット画像を自動で探します
+        （Apple の音楽検索を使います。曲名とアーティスト名がそこへ送られます）。
+        オフにすると、自分で写真から選んだときだけ表示します。
+      </p>
+      <label class="switch-row">
+        <input type="checkbox" id="auto-artwork" checked>
+        <span>自動で探す</span>
+      </label>
+      <button type="button" id="artwork-fill" class="wide-btn">画像が無い曲をまとめて探す</button>
+    </section>
+
+    <section class="settings-group">
       <h3>データのバックアップ</h3>
       <p class="hint">記録はこの端末の中だけに保存されます。機種変更の前に書き出しておくと安心です。</p>
       <div class="settings-actions">
@@ -169,6 +197,7 @@
   <li class="song card">
     <details>
       <summary>
+        <span class="thumb"><img class="thumb-img" alt="" hidden></span>
         <div class="song-main">
           <h2 class="title"></h2>
           <p class="artist"></p>

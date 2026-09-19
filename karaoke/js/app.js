@@ -7,6 +7,7 @@ import {
   filterSongs,
   formatKey,
   formatKeyBadge,
+  hasArtwork,
   KEY_MAX,
   KEY_MIN,
   missingArtists,
@@ -14,9 +15,11 @@ import {
   suggestArtists,
   ValidationError,
 } from "./model.js";
+import { findArtworkUrl, youtubeThumbnailUrl } from "./artwork.js";
+import { blobToDataUrl, dataUrlToBlob, toThumbnail } from "./image.js";
 import { Store } from "./store.js";
 import { normalize } from "./text.js";
-import { normalizeUrl, resolve } from "./youtube.js";
+import { extractVideoId, normalizeUrl, resolve } from "./youtube.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -29,7 +32,26 @@ const state = {
   filter: { status: "", query: "", sort: "updated" },
   expanded: new Set(), // 開いているカードの id
   editingId: null,
+  sheetArtwork: null, // シートで選び直した画像 { artwork, artworkUrl, artworkSource }
 };
+
+// 画像を表示するために作った URL。描き直すたびに開放する。
+const objectUrls = [];
+
+function artworkSrc(song) {
+  if (song.artwork) {
+    const url = URL.createObjectURL(song.artwork);
+    objectUrls.push(url);
+    return url;
+  }
+  return song.artworkUrl || "";
+}
+
+function showArtwork(container, image, src) {
+  image.src = src || "";
+  image.hidden = !src;
+  container.classList.toggle("has-image", Boolean(src));
+}
 
 const debounce = (fn, wait) => {
   let timer;
@@ -168,6 +190,7 @@ function render() {
   $("#stats").textContent =
     `レパートリー ${stats.repertoire} ／ 練習したい ${stats.practice} ／ アーティスト ${stats.artists}`;
 
+  while (objectUrls.length) URL.revokeObjectURL(objectUrls.pop());
   const visible = sortSongs(filterSongs(state.songs, state.filter, state.artists), state.filter.sort);
   listEl.replaceChildren(...visible.map(renderSong));
   emptyEl.hidden = visible.length > 0;
@@ -194,6 +217,7 @@ function renderSong(song) {
   pick(".artist").textContent = song.artist;
   pick(".key-badge").textContent = formatKeyBadge(song.key);
   pick(".impression").value = song.impression;
+  showArtwork(pick(".thumb"), pick(".thumb-img"), artworkSrc(song));
 
   const isRepertoire = song.status === "repertoire";
   const statusBadge = pick(".status-badge");
@@ -276,7 +300,10 @@ async function update(id, changes, { quiet = false } = {}) {
     await state.store.saveSong(updated);
     replaceSong(updated);
     if (!quiet) render();
-    if ("title" in changes || "artist" in changes) refreshAutoLink(updated);
+    if ("title" in changes || "artist" in changes) {
+      refreshAutoLink(updated);
+      refreshAutoArtwork(updated);
+    }
     return updated;
   } catch (error) {
     alert(error instanceof ValidationError ? error.message : "保存できませんでした。");
@@ -290,6 +317,34 @@ async function refreshAutoLink(song) {
   const current = state.songs.find((s) => s.id === song.id);
   if (!current || current.youtubeUrl === url || !current.youtubeAuto) return;
   const updated = { ...current, youtubeUrl: url };
+  await state.store.saveSong(updated);
+  replaceSong(updated);
+  render();
+}
+
+/** 曲名とアーティストからジャケット画像を探す。見つからなければ null。 */
+async function fetchArtwork(title, artist, { youtubeUrl = "" } = {}) {
+  const url =
+    (await findArtworkUrl(title, artist)) || youtubeThumbnailUrl(extractVideoId(youtubeUrl));
+  if (!url) return null;
+  try {
+    return { artwork: await toThumbnail(url), artworkUrl: url, artworkSource: "auto" };
+  } catch {
+    // 画像そのものを読めない場合（配信元が許可していないとき）は URL だけ覚えておく
+    return { artwork: null, artworkUrl: url, artworkSource: "auto" };
+  }
+}
+
+const autoArtworkEnabled = () => state.settings.autoArtwork !== false;
+
+/** 自動で入れた画像を、曲名やアーティストに合わせて入れ直す。 */
+async function refreshAutoArtwork(song) {
+  if (!autoArtworkEnabled() || song.artworkSource === "manual") return;
+  const found = await fetchArtwork(song.title, song.artist, { youtubeUrl: song.youtubeUrl });
+  if (!found) return;
+  const current = state.songs.find((s) => s.id === song.id);
+  if (!current || current.artworkSource === "manual") return;
+  const updated = { ...current, ...found };
   await state.store.saveSong(updated);
   replaceSong(updated);
   render();
@@ -337,6 +392,57 @@ function updateReadingField() {
 
 new ArtistAutocomplete($("#artist"), $("#artist-suggestions"), updateReadingField);
 
+const artworkPreview = $("#artwork-preview");
+const artworkStatus = $("#artwork-status");
+
+function showSheetArtwork(song) {
+  const chosen = state.sheetArtwork ?? song ?? {};
+  const src = chosen.artwork ? URL.createObjectURL(chosen.artwork) : chosen.artworkUrl || "";
+  if (chosen.artwork) objectUrls.push(src);
+  showArtwork(artworkPreview.parentElement, artworkPreview, src);
+  $("#artwork-clear").hidden = !src;
+}
+
+$("#artwork-search").addEventListener("click", async () => {
+  const title = $("#title").value.trim();
+  const artist = $("#artist").value.trim();
+  if (!title) {
+    artworkStatus.textContent = "先に曲名を入れてください。";
+    return;
+  }
+  artworkStatus.textContent = "探しています…";
+  const found = await fetchArtwork(title, artist);
+  if (found) {
+    state.sheetArtwork = found;
+    showSheetArtwork();
+    artworkStatus.textContent = "見つかりました。";
+  } else {
+    artworkStatus.textContent = "見つかりませんでした。写真から選べます。";
+  }
+});
+
+$("#artwork-pick").addEventListener("click", () => $("#artwork-file").click());
+
+$("#artwork-file").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  artworkStatus.textContent = "読み込んでいます…";
+  try {
+    state.sheetArtwork = { artwork: await toThumbnail(file), artworkUrl: "", artworkSource: "manual" };
+    showSheetArtwork();
+    artworkStatus.textContent = "写真を設定しました。";
+  } catch (error) {
+    artworkStatus.textContent = `読み込めませんでした（${error.message}）`;
+  }
+});
+
+$("#artwork-clear").addEventListener("click", () => {
+  state.sheetArtwork = { artwork: null, artworkUrl: "", artworkSource: null };
+  showSheetArtwork();
+  artworkStatus.textContent = "画像を消しました。";
+});
+
 function openSongSheet(song = null) {
   state.editingId = song?.id ?? null;
   $("#sheet-title").textContent = song ? "曲を編集" : "曲を追加";
@@ -349,6 +455,9 @@ function openSongSheet(song = null) {
   $("#youtube-url").placeholder = song?.youtubeAuto ? "自動で設定されています" : "https://music.youtube.com/watch?v=...";
   $$("input[name='status']").forEach((radio) => (radio.checked = radio.value === (song?.status ?? "repertoire")));
   setFormKey(song?.key ?? 0);
+  state.sheetArtwork = null;
+  artworkStatus.textContent = "";
+  showSheetArtwork(song);
   updateReadingField();
   sheet.showModal();
   if (!song) $("#title").focus(); // 遅らせると入力中にフォーカスを奪ってしまう
@@ -362,6 +471,7 @@ form.addEventListener("submit", async (event) => {
   const data = Object.fromEntries(new FormData(form));
   data.key = keyInput.value;
   data.youtubeUrl = normalizeUrl(data.youtubeUrl);
+  if (state.sheetArtwork) Object.assign(data, state.sheetArtwork);
   try {
     if (state.editingId === null) {
       const song = await state.store.saveSong(buildSong(data));
@@ -371,6 +481,7 @@ form.addEventListener("submit", async (event) => {
       sheet.close();
       toast("追加しました");
       refreshAutoLink(song);
+      if (!hasArtwork(song)) refreshAutoArtwork(song);
     } else {
       const updated = await update(state.editingId, data, { quiet: true });
       if (!updated) return;
@@ -415,6 +526,7 @@ const settingsSheet = $("#settings-sheet");
 
 $("#open-settings").addEventListener("click", () => {
   $("#api-key").value = state.settings.apiKey || "";
+  $("#auto-artwork").checked = autoArtworkEnabled();
   const stats = computeStats(state.songs);
   $("#about-text").textContent =
     `登録されている曲は ${stats.total} 曲、候補のアーティストは ${state.artists.length} 組です。` +
@@ -432,12 +544,49 @@ $("#api-key").addEventListener(
   }, 100)
 );
 
-$("#export-btn").addEventListener("click", () => {
+$("#auto-artwork").addEventListener("change", async (event) => {
+  state.settings.autoArtwork = event.target.checked;
+  await state.store.setSetting("autoArtwork", state.settings.autoArtwork);
+  toast(event.target.checked ? "自動で探します" : "自動では探しません");
+});
+
+$("#artwork-fill").addEventListener("click", async (event) => {
+  const button = event.target;
+  const targets = state.songs.filter((song) => !hasArtwork(song));
+  if (targets.length === 0) {
+    toast("すべての曲に画像があります");
+    return;
+  }
+  button.disabled = true;
+  let found = 0;
+  for (const [index, song] of targets.entries()) {
+    toast(`探しています… ${index + 1}/${targets.length}`);
+    const artwork = await fetchArtwork(song.title, song.artist, { youtubeUrl: song.youtubeUrl });
+    if (!artwork) continue;
+    const current = state.songs.find((s) => s.id === song.id);
+    if (!current || hasArtwork(current)) continue;
+    const updated = { ...current, ...artwork };
+    await state.store.saveSong(updated);
+    replaceSong(updated);
+    found += 1;
+  }
+  button.disabled = false;
+  render();
+  toast(`${found} 曲に画像を設定しました`);
+});
+
+$("#export-btn").addEventListener("click", async () => {
   const payload = {
     app: "karaoke-repertory",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    songs: state.songs.map(({ id, ...song }) => song),
+    // 画像は Blob のままでは書き出せないので、文字列（data URL）に直す
+    songs: await Promise.all(
+      state.songs.map(async ({ id, artwork, ...song }) => ({
+        ...song,
+        artwork: artwork ? await blobToDataUrl(artwork) : null,
+      }))
+    ),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -459,11 +608,13 @@ $("#import-file").addEventListener("change", async (event) => {
     const payload = JSON.parse(await file.text());
     const songs = Array.isArray(payload) ? payload : payload.songs;
     if (!Array.isArray(songs)) throw new Error("形式が違います");
-    const restored = songs.map((song) => buildSong({ ...song, youtubeUrl: song.youtubeUrl || "" }));
+    const restored = songs.map((song) => buildSong({ ...song, artwork: null, youtubeUrl: song.youtubeUrl || "" }));
     for (const [index, song] of restored.entries()) {
-      song.youtubeAuto = songs[index].youtubeAuto ?? !songs[index].youtubeUrl;
-      song.createdAt = songs[index].createdAt || song.createdAt;
-      song.updatedAt = songs[index].updatedAt || song.updatedAt;
+      const source = songs[index];
+      song.youtubeAuto = source.youtubeAuto ?? !source.youtubeUrl;
+      song.createdAt = source.createdAt || song.createdAt;
+      song.updatedAt = source.updatedAt || song.updatedAt;
+      song.artwork = typeof source.artwork === "string" ? await dataUrlToBlob(source.artwork) : null;
     }
     if (!confirm(`${restored.length} 曲を読み込みます。今ある ${state.songs.length} 曲は置き換えられます。よろしいですか？`)) {
       return;
