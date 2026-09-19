@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>アプリ一覧</title>
 <meta name="description" content="Claude Code で作ったアプリの入口">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#101218">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="アプリ">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -67,17 +75,13 @@
 </main>
 
 <script>
-  // 以前このページの場所にあったアプリの Service Worker が端末に残っていれば片付ける。
-  // （各アプリの Service Worker は、それぞれのフォルダ側で登録される）
+  // このページを電波がなくても開けるようにする。
+  // ここで登録する Service Worker は入口ページ自身のファイルだけを扱い、
+  // 各アプリ（karaoke/ や bubble_money/）の通信には手を出さない。
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function (registrations) {
-      registrations.forEach(function (registration) {
-        if (new URL(registration.scope).pathname === location.pathname) registration.unregister();
-      });
-    }).catch(function () {});
-    caches.keys().then(function (keys) {
-      keys.filter(function (key) { return key.indexOf("awa-") === 0; }).forEach(function (key) { caches.delete(key); });
-    }).catch(function () {});
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    });
   }
 </script>
 </body>

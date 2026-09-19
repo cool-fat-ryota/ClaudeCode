@@ -1,5 +1,6 @@
 /* あわ貯金 — オフラインでも開けるようにする */
-var CACHE = 'awa-chokin-v1';
+var CACHE_PREFIX = 'awa-chokin-';
+var CACHE = CACHE_PREFIX + 'v1';
 var ASSETS = [
   './',
   './index.html',
@@ -24,8 +25,9 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
+      // 同じドメインに別のアプリが同居しているので、自分の古い版だけを消す
       return Promise.all(keys.map(function (k) {
-        return k === CACHE ? null : caches.delete(k);
+        return (k.indexOf(CACHE_PREFIX) === 0 && k !== CACHE) ? caches.delete(k) : null;
       }));
     }).then(function () { return self.clients.claim(); })
   );

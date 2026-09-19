@@ -1,6 +1,7 @@
 // オフラインでも起動できるようにアプリ本体をキャッシュする Service Worker。
 
-const CACHE = "karaoke-repertory-v2";
+const CACHE_PREFIX = "karaoke-repertory-";
+const CACHE = `${CACHE_PREFIX}v2`;
 
 const APP_SHELL = [
   "./",
@@ -31,7 +32,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      // 同じドメインに別のアプリが同居していることがあるので、自分の古い版だけを消す
+      .then((keys) => keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE))
+      .then((stale) => Promise.all(stale.map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
