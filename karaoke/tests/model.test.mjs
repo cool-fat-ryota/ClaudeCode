@@ -8,6 +8,7 @@ import {
   filterSongs,
   formatKey,
   formatKeyBadge,
+  hasArtwork,
   missingArtists,
   sortSongs,
   suggestArtists,
@@ -92,6 +93,33 @@ describe("曲の組み立て", () => {
   it("リンクを指定しなければ自動取得の対象になる", () => {
     assert.equal(song().youtubeAuto, true);
     assert.equal(song({ youtubeUrl: "https://music.youtube.com/watch?v=abcdefghijk" }).youtubeAuto, false);
+  });
+});
+
+describe("ジャケット画像", () => {
+  it("既定では画像なし", () => {
+    const built = song();
+    assert.equal(built.artwork, null);
+    assert.equal(built.artworkUrl, "");
+    assert.equal(built.artworkSource, null);
+    assert.equal(hasArtwork(built), false);
+  });
+
+  it("URL だけでも画像ありとみなす", () => {
+    assert.equal(hasArtwork(song({ artworkUrl: "https://example.com/a.jpg" })), true);
+  });
+
+  it("あとから設定・削除できる", () => {
+    const withArt = applyChanges(song(), {
+      artwork: "（Blob のかわり）",
+      artworkUrl: "https://example.com/a.jpg",
+      artworkSource: "manual",
+    });
+    assert.equal(withArt.artworkSource, "manual");
+    assert.equal(hasArtwork(withArt), true);
+
+    const cleared = applyChanges(withArt, { artwork: null, artworkUrl: "", artworkSource: null });
+    assert.equal(hasArtwork(cleared), false);
   });
 });
 

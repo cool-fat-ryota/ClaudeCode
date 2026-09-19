@@ -20,7 +20,7 @@
 - 配信の設定は **Settings → Pages** の「Deploy from a branch」
   （`claude/impulse-purchase-app-sif3y5` の `/ (root)`）。push すると1分ほどで反映されます
 - 開発用リポジトリは <https://github.com/cool-fat-ryota/karaoke_repertory>（テストと履歴はそちら）。
-  直したときは、`index.html` `styles.css` `sw.js` `manifest.webmanifest` `js/` `icons/` `fonts/` を
+  直したときは、リポジトリの中身一式（`.git` `.github` `CLAUDE.md` を除く） を
   両方に反映してください
 
 ### 2. ホーム画面に追加する
