@@ -229,13 +229,14 @@ body.is-hell .scene { animation: pulse 4.5s ease-in-out infinite; }
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
   border-radius: 999px;
   transition: width .5s ease;
 }
 
-.gauge-fill { background: linear-gradient(90deg, #ffd27a, #ff8a1e); }
-.gauge-over { background: repeating-linear-gradient(135deg, #ff3b12 0 6px, #7e1004 6px 12px); }
+.gauge-fill { left: 0; background: linear-gradient(90deg, #ffd27a, #ff8a1e); }
+
+/* 超えたぶんは右から塗りつぶしていく */
+.gauge-over { right: 0; background: repeating-linear-gradient(135deg, #ff3b12 0 6px, #7e1004 6px 12px); }
 
 .gauge-foot {
   display: flex;
