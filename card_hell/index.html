@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>カード地獄</title>
+<meta name="description" content="クレジットカードを使ったその場で記録して、使いすぎを画面の温度で知らせるアプリ">
+<link rel="stylesheet" href="./styles.css">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#eaf2f7" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="カード地獄">
+<link rel="apple-touch-icon" href="./icons/apple-touch-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+</head>
+<body>
+
+<!-- 背景。使った金額に応じて、静かな朝から地獄まで変わっていく -->
+<div class="scene" aria-hidden="true">
+  <div class="sky"></div>
+  <div class="glow"></div>
+  <div class="flames">
+    <i style="--x:8%;  --w:46%; --d:0s;    --s:3.1s"></i>
+    <i style="--x:26%; --w:38%; --d:-1.2s; --s:2.4s"></i>
+    <i style="--x:48%; --w:52%; --d:-0.6s; --s:3.6s"></i>
+    <i style="--x:68%; --w:40%; --d:-1.9s; --s:2.8s"></i>
+    <i style="--x:86%; --w:44%; --d:-2.6s; --s:3.3s"></i>
+  </div>
+  <div class="lava"></div>
+  <div class="embers" id="embers"></div>
+  <div class="vignette"></div>
+</div>
+
+<div class="app">
+
+  <header class="top">
+    <div class="top-row">
+      <button class="ghost-btn" type="button" data-act="open-menu" aria-label="設定とデータ">•••</button>
+    </div>
+    <p class="period" id="periodLabel">今月</p>
+    <p class="total" id="total">¥0</p>
+    <p class="verdict" id="verdict">まだ静かです。</p>
+
+    <div class="gauge" id="gauge">
+      <div class="gauge-bar">
+        <div class="gauge-fill" id="gaugeFill"></div>
+        <div class="gauge-over" id="gaugeOver"></div>
+      </div>
+      <div class="gauge-foot">
+        <span id="gaugeLeft">予算 ¥0</span>
+        <span id="gaugePace"></span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="画面">
+    <button class="tab is-on" type="button" role="tab" aria-selected="true" data-view="now">いま</button>
+    <button class="tab" type="button" role="tab" aria-selected="false" data-view="look">ふりかえり</button>
+  </nav>
+
+  <main class="body">
+    <section id="viewNow" role="tabpanel" aria-label="いま">
+      <div class="quick" id="quickCats" aria-label="よく使う分類"></div>
+      <div class="list" id="entries"></div>
+    </section>
+
+    <section id="viewLook" role="tabpanel" aria-label="ふりかえり" hidden>
+      <div class="stepper">
+        <button class="step-btn" type="button" data-act="prev-period" aria-label="前の期間">‹</button>
+        <span id="lookLabel">—</span>
+        <button class="step-btn" type="button" data-act="next-period" aria-label="次の期間">›</button>
+      </div>
+      <div id="lookBody"></div>
+    </section>
+  </main>
+
+</div>
+
+<button class="fab" id="addBtn" type="button"><span aria-hidden="true">＋</span>カードを使った</button>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="入力"></div>
+</div>
+
+<input type="file" id="fileInput" accept="application/json,.json" hidden>
+<div class="toast" id="toast" hidden></div>
+
+<script src="./app.js"></script>
+</body>
+</html>

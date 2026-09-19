@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-52 -52 616 616" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b0407"/>
+      <stop offset="0.55" stop-color="#63090a"/>
+      <stop offset="1" stop-color="#b52405"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="1" r="0.85">
+      <stop offset="0" stop-color="#ffb347" stop-opacity="0.95"/>
+      <stop offset="0.45" stop-color="#ff6a12" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ff3b00" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flameA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a18"/>
+      <stop offset="1" stop-color="#ffd166"/>
+    </linearGradient>
+    <linearGradient id="flameB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd76a"/>
+      <stop offset="1" stop-color="#fff3c4"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#fdf6ef"/>
+      <stop offset="0.6" stop-color="#e9d9cb"/>
+      <stop offset="1" stop-color="#6b4436"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#d79a1b"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+    <path id="flame" d="M50 0 C 68 28, 86 44, 86 64 C 86 84, 70 100, 50 100 C 30 100, 14 84, 14 64 C 14 44, 32 28, 50 0 Z"/>
+  </defs>
+
+  <rect x="-52" y="-52" width="616" height="616" fill="url(#bg)"/>
+  <ellipse cx="256" cy="564" rx="300" ry="290" fill="url(#glow)"/>
+
+  <!-- カードの後ろで立ちのぼる炎 -->
+  <g filter="url(#soft)" opacity="0.7">
+    <use href="#flame" transform="translate(118 52) scale(3.0)" fill="#ff6a12"/>
+    <use href="#flame" transform="translate(304 104) scale(1.9)" fill="#ff9a2a"/>
+  </g>
+
+  <!-- クレジットカード（下のふちが焦げている） -->
+  <g transform="rotate(-10 256 268)">
+    <rect x="86" y="168" width="340" height="212" rx="28" fill="url(#card)"/>
+    <rect x="86" y="206" width="340" height="40" fill="#2f2019" opacity="0.9"/>
+    <rect x="116" y="272" width="72" height="54" rx="12" fill="url(#chip)"/>
+    <rect x="212" y="286" width="150" height="16" rx="8" fill="#8d7566" opacity="0.8"/>
+    <rect x="212" y="316" width="96" height="16" rx="8" fill="#8d7566" opacity="0.55"/>
+  </g>
+
+  <!-- 手前の炎 -->
+  <use href="#flame" transform="translate(150 246) scale(2.1)" fill="url(#flameA)"/>
+  <use href="#flame" transform="translate(300 268) scale(1.5)" fill="url(#flameA)" opacity="0.92"/>
+  <use href="#flame" transform="translate(186 330) scale(1.2)" fill="url(#flameB)"/>
+  <use href="#flame" transform="translate(316 348) scale(0.85)" fill="url(#flameB)" opacity="0.9"/>
+</svg>

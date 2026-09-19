@@ -1,0 +1,19 @@
+{
+  "name": "カード地獄",
+  "short_name": "カード地獄",
+  "description": "クレジットカードを使ったその場で記録して、使いすぎを画面の温度で知らせるアプリ",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eaf2f7",
+  "theme_color": "#eaf2f7",
+  "categories": ["finance", "lifestyle"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
